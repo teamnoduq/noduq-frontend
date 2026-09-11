@@ -7,7 +7,7 @@ import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 
 const MODES = [
-  { id: "account", label: "Cuenta" },
+  { id: "account", label: "Dueño" },
   { id: "employee", label: "Empleado" },
 ];
 
@@ -69,7 +69,9 @@ export default function LoginPage() {
       <div className="auth-card">
         <Brand />
         <h1>Entrar</h1>
-        <p className="auth-lede">Correo y contraseña, o usuario y código.</p>
+        <p className="auth-lede">
+          {mode === "employee" ? "Usa tus datos para continuar." : "Accede a tu cuenta NODUQ."}
+        </p>
         <ModeSwitch value={mode} onChange={switchMode} options={MODES} />
         <form className="auth-form" onSubmit={onSubmit} noValidate>
           {mode === "account" ? (
@@ -134,9 +136,9 @@ export default function LoginPage() {
         <p className="auth-switch">
           {mode === "employee" ? (
             <>
-              ¿Tienes correo?{" "}
+              ¿Eres dueño?{" "}
               <button type="button" onClick={() => switchMode("account")}>
-                Entra con la cuenta
+                Entrar con correo
               </button>
             </>
           ) : (

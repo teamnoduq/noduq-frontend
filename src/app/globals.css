@@ -121,22 +121,20 @@ button {
   min-height: 100dvh;
   display: grid;
   place-items: center;
-  padding: 32px 20px;
+  padding: 40px 20px;
   background:
-    radial-gradient(720px 420px at 82% -10%, color-mix(in srgb, var(--cian) 16%, transparent), transparent 58%),
-    radial-gradient(560px 380px at 8% 110%, color-mix(in srgb, var(--navy) 28%, transparent), transparent 60%),
+    radial-gradient(640px 380px at 80% -8%, color-mix(in srgb, var(--cian) 10%, transparent), transparent 62%),
+    radial-gradient(520px 340px at 12% 108%, color-mix(in srgb, var(--navy) 18%, transparent), transparent 64%),
     var(--night);
 }
 
 .auth-card {
-  width: min(100%, 400px);
-  padding: 28px 24px 24px;
+  width: min(100%, 392px);
+  padding: 32px 28px 28px;
   border-radius: var(--radius-lg);
   border: 1px solid var(--line);
-  background: color-mix(in srgb, var(--ink) 86%, #000);
-  box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--mist) 4%, transparent),
-    0 28px 80px color-mix(in srgb, #000 42%, transparent);
+  background: color-mix(in srgb, var(--ink) 88%, #000);
+  box-shadow: 0 24px 64px color-mix(in srgb, #000 36%, transparent);
 }
 
 .auth-kicker {
@@ -149,24 +147,25 @@ button {
 }
 
 .auth-card h1 {
-  margin: 6px 0 0;
-  font-size: 28px;
-  letter-spacing: -0.04em;
+  margin: 20px 0 0;
+  font-size: 24px;
+  letter-spacing: -0.038em;
   font-weight: 600;
+  line-height: 1.15;
   text-wrap: balance;
 }
 
 .auth-lede {
   margin: 8px 0 0;
   color: var(--mist-3);
-  max-width: 36ch;
+  line-height: 1.5;
 }
 
 .mode-switch {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 4px;
-  margin-top: 20px;
+  margin-top: 22px;
   padding: 4px;
   border-radius: 10px;
   border: 1px solid var(--line);
@@ -178,24 +177,50 @@ button {
   border: 0;
   border-radius: 8px;
   background: transparent;
-  color: var(--mist-3);
+  color: var(--mist-4);
   cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition:
+    background-color 140ms var(--ease),
+    color 140ms var(--ease);
+}
+
+.mode-switch button:hover:not(.is-on) {
+  color: var(--mist);
 }
 
 .mode-switch button.is-on {
-  background: color-mix(in srgb, var(--cian) 16%, transparent);
+  background: color-mix(in srgb, var(--mist) 10%, transparent);
   color: var(--mist);
 }
 
 .auth-form {
   display: grid;
-  gap: 14px;
-  margin-top: 22px;
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.auth-form .btn-block {
+  margin-top: 4px;
+}
+
+.auth-card .field-label {
+  color: var(--mist-3);
+  font-weight: 500;
+}
+
+.auth-card .field {
+  gap: 7px;
+}
+
+.auth-card .field-hint {
+  color: var(--mist-4);
 }
 
 .auth-switch {
-  margin: 18px 0 0;
-  color: var(--mist-3);
+  margin: 20px 0 0;
+  color: var(--mist-4);
   font-size: 13px;
 }
 
@@ -205,6 +230,13 @@ button {
   color: var(--cian);
   text-decoration: underline;
   text-underline-offset: 3px;
+  transition: color 140ms var(--ease);
+}
+
+.auth-lede a:hover,
+.auth-switch a:hover,
+.auth-switch button:hover {
+  color: color-mix(in srgb, var(--cian) 78%, #fff);
 }
 
 .auth-switch button {
@@ -254,6 +286,9 @@ button {
   border: 1px solid var(--line-strong);
   background: var(--well);
   color: var(--mist);
+  transition:
+    border-color 140ms var(--ease),
+    box-shadow 140ms var(--ease);
 }
 
 .input::placeholder {
@@ -300,10 +335,11 @@ button {
   color: var(--mist-3);
   cursor: pointer;
   border-radius: 6px;
+  transition: color 140ms var(--ease);
 }
 
 .password-toggle:hover {
-  color: var(--mist);
+  color: var(--cian);
 }
 
 .btn {
@@ -787,6 +823,21 @@ button {
   .page-head {
     align-items: stretch;
     flex-direction: column;
+  }
+}
+
+@media (max-width: 480px) {
+  .auth-stage {
+    padding: 28px 16px;
+  }
+
+  .auth-card {
+    padding: 28px 20px 24px;
+  }
+
+  .auth-card h1 {
+    font-size: 22px;
+    margin-top: 16px;
   }
 }
 

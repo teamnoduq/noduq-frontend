@@ -1,18 +1,28 @@
 "use client";
 
 import { Brand } from "@/components/brand";
+import { LoginIdeaNav, LoginMotion, useLoginIdea } from "@/components/login-motion";
 import { Banner, Button, Field, ModeSwitch, PasswordInput, TextInput } from "@/components/ui";
 import { useAuth } from "@/components/auth-provider";
 import Link from "next/link";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, Suspense, useEffect, useState } from "react";
 
 const MODES = [
-  { id: "account", label: "Cuenta" },
+  { id: "account", label: "Dueño" },
   { id: "employee", label: "Empleado" },
 ];
 
 export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="auth-stage" />}>
+      <LoginInner />
+    </Suspense>
+  );
+}
+
+function LoginInner() {
   const { signIn, signInEmployee } = useAuth();
+  const idea = useLoginIdea();
   const [mode, setMode] = useState("account");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -66,10 +76,14 @@ export default function LoginPage() {
 
   return (
     <div className="auth-stage">
+      <LoginIdeaNav idea={idea} />
+      <div className={idea === "base" ? "auth-solo" : "auth-split"}>
       <div className="auth-card">
         <Brand />
         <h1>Entrar</h1>
-        <p className="auth-lede">Correo y contraseña, o usuario y código.</p>
+        <p className="auth-lede">
+          {mode === "employee" ? "Usa tus datos para continuar." : "Accede a tu cuenta NODUQ."}
+        </p>
         <ModeSwitch value={mode} onChange={switchMode} options={MODES} />
         <form className="auth-form" onSubmit={onSubmit} noValidate>
           {mode === "account" ? (
@@ -134,9 +148,9 @@ export default function LoginPage() {
         <p className="auth-switch">
           {mode === "employee" ? (
             <>
-              ¿Tienes correo?{" "}
+              ¿Eres el dueño?{" "}
               <button type="button" onClick={() => switchMode("account")}>
-                Entra con la cuenta
+                Entrar
               </button>
             </>
           ) : (
@@ -145,6 +159,8 @@ export default function LoginPage() {
             </>
           )}
         </p>
+      </div>
+      {idea !== "base" ? <LoginMotion idea={idea} /> : null}
       </div>
     </div>
   );

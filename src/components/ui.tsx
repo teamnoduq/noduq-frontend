@@ -113,7 +113,7 @@ export function ModeSwitch({
   options: { id: string; label: string }[];
 }) {
   return (
-    <div className="mode-switch" role="tablist" aria-label="Cómo entrar">
+    <div className="mode-switch" role="tablist" aria-label="Dueño o empleado">
       {options.map((option) => {
         const on = option.id === value;
         return (

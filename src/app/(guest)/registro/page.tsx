@@ -49,11 +49,8 @@ export default function RegistroPage() {
     <div className="auth-stage">
       <div className="auth-card">
         <Brand />
-        <h1>Crear cuenta</h1>
-        <p className="auth-lede">
-          Correo y contraseña. Después el nombre de la organización. Si ya te dieron usuario y
-          código, <Link href="/login#empleado">entra aquí</Link>.
-        </p>
+        <h1>Crea tu cuenta</h1>
+        <p className="auth-lede">Configura tu cuenta NODUQ para empezar.</p>
         <form className="auth-form" onSubmit={onSubmit} noValidate>
           <Field id="email" label="Correo">
             <TextInput

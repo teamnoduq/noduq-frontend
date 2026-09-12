@@ -63,7 +63,7 @@ export function SceneSms() {
       <rect x="212" y="102" width="136" height="248" rx="14" fill={C.well} />
       <rect x="258" y="88" width="44" height="6" rx="3" fill={C.mist} opacity="0.18" />
       <rect x="268" y="368" width="24" height="6" rx="3" fill={C.mist} opacity="0.2" />
-      <Qr x="246" y="178" s="68" />
+      <Qr x={246} y={178} s={68} />
       {bubbles.map((b) => (
         <motion.g
           key={b.y}
@@ -92,7 +92,7 @@ export function SceneScan() {
       <Ground />
       <rect x="86" y="292" width="308" height="22" rx="6" fill={C.lift} />
       <rect x="148" y="168" width="88" height="124" rx="10" fill={C.ink} stroke={C.cian} strokeOpacity="0.3" />
-      <Qr x="160" y="186" s="64" />
+      <Qr x={160} y={186} s={64} />
       <rect x="168" y="292" width="48" height="18" rx="3" fill={C.ink} />
       <g transform="rotate(-18 318 250)">
         <rect x="262" y="142" width="112" height="216" rx="22" fill={C.ink} stroke={C.cian} strokeOpacity="0.32" />
@@ -152,7 +152,7 @@ export function SceneTienda() {
       <rect x="268" y="278" width="56" height="104" rx="6" fill={C.ink} stroke={C.cian} strokeOpacity="0.28" />
       <circle cx="312" cy="332" r="4" fill={C.cian} opacity="0.5" />
       <rect x="218" y="168" width="44" height="36" rx="4" fill={C.ink} stroke={C.cian} strokeOpacity="0.4" />
-      <Qr x="224" y="174" s="32" />
+      <Qr x={224} y={174} s={32} />
       <ellipse cx="240" cy="390" rx="70" ry="8" fill={C.night} opacity="0.4" />
     </svg>
   );
@@ -171,7 +171,7 @@ export function SceneSello() {
         <rect x="168" y="166" width="144" height="6" rx="3" fill={C.mist} opacity="0.2" />
         <rect x="168" y="186" width="128" height="6" rx="3" fill={C.mist} opacity="0.14" />
         <rect x="168" y="206" width="136" height="6" rx="3" fill={C.mist} opacity="0.14" />
-        <Qr x="186" y="232" s="72" />
+        <Qr x={186} y={232} s={72} />
       </g>
       <motion.g
         style={{ transformOrigin: "318px 188px" }}
@@ -210,7 +210,7 @@ export function SceneMostrador() {
       <rect x="108" y="266" width="44" height="8" rx="3" fill={C.mist} opacity="0.16" />
       <rect x="292" y="168" width="86" height="124" rx="16" fill={C.ink} stroke={C.cian} strokeOpacity="0.35" />
       <rect x="304" y="182" width="62" height="88" rx="8" fill={C.well} />
-      <Qr x="313" y="196" s="44" />
+      <Qr x={313} y={196} s={44} />
       <motion.g
         animate={
           reduce

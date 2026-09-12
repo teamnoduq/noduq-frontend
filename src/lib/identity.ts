@@ -3,6 +3,7 @@ import type {
   CreatedEmployee,
   Employee,
   EmployeeSessionPayload,
+  Organization,
   Profile,
   Workspace,
 } from "@/lib/types";

@@ -12,8 +12,8 @@ export default function PagosPage() {
         <div>
           <h1>Pagos</h1>
           <p className="lede">
-            Aquí llega el aviso cuando confirmen el QR de Bancolombia. Todavía no hay ingest: esta
-            pantalla espera de verdad.
+            Aquí llega el aviso cuando confirmen el QR de Bancolombia. NODUQ lee el mensaje tal
+            cual llega, de los remitentes del banco.
           </p>
         </div>
       </header>

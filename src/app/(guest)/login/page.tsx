@@ -8,7 +8,7 @@ import Link from "next/link";
 import { FormEvent, Suspense, useEffect, useState } from "react";
 
 const MODES = [
-  { id: "account", label: "Dueño" },
+  { id: "account", label: "Cuenta" },
   { id: "employee", label: "Empleado" },
 ];
 
@@ -21,7 +21,7 @@ export default function LoginPage() {
 }
 
 function LoginInner() {
-  const { signIn, signInEmployee } = useAuth();
+  const { signIn, signInEmployee, signInWithGoogle } = useAuth();
   const idea = useLoginIdea();
   const [mode, setMode] = useState("account");
   const [email, setEmail] = useState("");
@@ -30,6 +30,7 @@ function LoginInner() {
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   useEffect(() => {
     if (window.location.hash === "#empleado") setMode("employee");
@@ -38,6 +39,17 @@ function LoginInner() {
   function switchMode(next: string) {
     setMode(next);
     setError(null);
+  }
+
+  async function onGoogle() {
+    setError(null);
+    setGoogleLoading(true);
+    try {
+      await signInWithGoogle();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No se pudo entrar con Google.");
+      setGoogleLoading(false);
+    }
   }
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
@@ -144,11 +156,24 @@ function LoginInner() {
           <Button type="submit" className="btn-block" loading={submitting}>
             {submitting ? "Entrando…" : "Entrar"}
           </Button>
+          {mode === "account" ? (
+            <>
+              <p className="auth-or">o</p>
+              <button
+                type="button"
+                className="btn-google"
+                onClick={() => void onGoogle()}
+                disabled={submitting || googleLoading}
+              >
+                {googleLoading ? "Abriendo Google…" : "Continuar con Google"}
+              </button>
+            </>
+          ) : null}
         </form>
         <p className="auth-switch">
           {mode === "employee" ? (
             <>
-              ¿Eres el dueño?{" "}
+              ¿Entrar con la cuenta?{" "}
               <button type="button" onClick={() => switchMode("account")}>
                 Entrar
               </button>

@@ -15,16 +15,16 @@ export default function SetupPage() {
   const [organizationName, setOrganizationName] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [fieldError, setFieldError] = useState<string | null>(null);
+  const [orgError, setOrgError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
-    setFieldError(null);
+    setOrgError(null);
     const name = organizationName.trim();
     if (name.length < 2 || name.length > 80) {
-      setFieldError("El nombre debe tener entre 2 y 80 caracteres.");
+      setOrgError("El nombre debe tener entre 2 y 80 caracteres.");
       return;
     }
     if (!accessToken) {
@@ -50,10 +50,14 @@ export default function SetupPage() {
     <div className="auth-stage">
       <div className="auth-card">
         <Brand />
-        <h1>Tu organización</h1>
-        <p className="auth-lede">Así aparece en NODUQ. Después puedes crear empleados.</p>
+        <p className="auth-kicker">Onboarding</p>
+        <h1>Tu comercio</h1>
+        <p className="auth-lede">
+          Así aparece en NODUQ. Los avisos salen de los remitentes de Bancolombia; no hay que pegar
+          números de cuenta.
+        </p>
         <form className="auth-form" onSubmit={onSubmit} noValidate>
-          <Field id="organization" label="Organización" error={fieldError ?? undefined}>
+          <Field id="organization" label="Organización" error={orgError ?? undefined}>
             <TextInput
               id="organization"
               name="organization"
@@ -61,8 +65,7 @@ export default function SetupPage() {
               value={organizationName}
               onChange={(e) => setOrganizationName(e.target.value)}
               disabled={submitting}
-              error={Boolean(fieldError)}
-              describedBy={fieldError ? "organization-error" : undefined}
+              error={Boolean(orgError)}
             />
           </Field>
           <Field id="displayName" label="Tu nombre" optional>
@@ -78,7 +81,7 @@ export default function SetupPage() {
           </Field>
           {error ? <Banner>{error}</Banner> : null}
           <Button type="submit" className="btn-block" loading={submitting}>
-            {submitting ? "Guardando…" : "Continuar"}
+            {submitting ? "Guardando…" : "Abrir el panel"}
           </Button>
         </form>
       </div>

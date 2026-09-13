@@ -14,7 +14,10 @@ export function getMe(token: string) {
 
 export function bootstrapMe(
   token: string,
-  body: { displayName?: string; organizationName: string },
+  body: {
+    displayName?: string;
+    organizationName: string;
+  },
 ) {
   return api<Workspace>("/v1/me/bootstrap", token, {
     method: "POST",

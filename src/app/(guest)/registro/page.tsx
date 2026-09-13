@@ -7,18 +7,18 @@ import Link from "next/link";
 import { FormEvent, useState } from "react";
 
 export default function RegistroPage() {
-  const { signUp } = useAuth();
+  const { signUp, signInWithGoogle } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [info, setInfo] = useState<string | null>(null);
+  const [waitingMail, setWaitingMail] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
-    setInfo(null);
     const mail = email.trim();
     if (!mail) {
       setError("Escribe un correo.");
@@ -36,7 +36,7 @@ export default function RegistroPage() {
     try {
       const { needsConfirm } = await signUp(mail, password);
       if (needsConfirm) {
-        setInfo("Revisa tu correo para confirmar la cuenta. Luego vuelve a entrar.");
+        setWaitingMail(mail);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "No se pudo crear la cuenta.");
@@ -45,12 +45,42 @@ export default function RegistroPage() {
     }
   }
 
+  async function onGoogle() {
+    setError(null);
+    setGoogleLoading(true);
+    try {
+      await signInWithGoogle();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No se pudo entrar con Google.");
+      setGoogleLoading(false);
+    }
+  }
+
+  if (waitingMail) {
+    return (
+      <div className="auth-stage">
+        <div className="auth-card">
+          <Brand />
+          <p className="auth-kicker">Correo</p>
+          <h1>Confirma tu cuenta</h1>
+          <p className="auth-lede">
+            Te escribimos a <strong>{waitingMail}</strong> desde NODUQ. Abre el enlace de ese
+            mensaje (no uno viejo) y vuelve a entrar.
+          </p>
+          <p className="auth-switch">
+            ¿Ya confirmaste? <Link href="/login">Entrar</Link>
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="auth-stage">
       <div className="auth-card">
         <Brand />
         <h1>Crea tu cuenta</h1>
-        <p className="auth-lede">Configura tu cuenta NODUQ para empezar.</p>
+        <p className="auth-lede">Después armamos el comercio. El aviso de pago sale de Bancolombia, no de un número que tengas que copiar.</p>
         <form className="auth-form" onSubmit={onSubmit} noValidate>
           <Field id="email" label="Correo">
             <TextInput
@@ -61,7 +91,7 @@ export default function RegistroPage() {
               inputMode="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              disabled={submitting}
+              disabled={submitting || googleLoading}
             />
           </Field>
           <Field id="password" label="Contraseña" hint="Mínimo 6 caracteres.">
@@ -71,7 +101,7 @@ export default function RegistroPage() {
               autoComplete="new-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              disabled={submitting}
+              disabled={submitting || googleLoading}
             />
           </Field>
           <Field id="confirm" label="Repite la contraseña">
@@ -81,14 +111,22 @@ export default function RegistroPage() {
               autoComplete="new-password"
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
-              disabled={submitting}
+              disabled={submitting || googleLoading}
             />
           </Field>
           {error ? <Banner>{error}</Banner> : null}
-          {info ? <Banner tone="ok">{info}</Banner> : null}
           <Button type="submit" className="btn-block" loading={submitting}>
             {submitting ? "Creando…" : "Crear cuenta"}
           </Button>
+          <p className="auth-or">o</p>
+          <button
+            type="button"
+            className="btn-google"
+            onClick={() => void onGoogle()}
+            disabled={submitting || googleLoading}
+          >
+            {googleLoading ? "Abriendo Google…" : "Continuar con Google"}
+          </button>
         </form>
         <p className="auth-switch">
           ¿Ya tienes cuenta? <Link href="/login">Entrar</Link>

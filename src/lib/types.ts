@@ -7,6 +7,7 @@ export type Organization = {
   id: string;
   name: string;
   smsPhone: string | null;
+  merchantLast4: string | null;
 };
 
 export type Branch = {

@@ -31,6 +31,7 @@ type AuthContextValue = {
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signInEmployee: (username: string, code: string) => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
   signUp: (email: string, password: string) => Promise<{ needsConfirm: boolean }>;
   signOut: () => Promise<void>;
 };
@@ -152,9 +153,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [supabase],
   );
 
+  const signInWithGoogle = useCallback(async () => {
+    clearEmployeeToken();
+    setEmployeeSession(null);
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: `${window.location.origin}/login`,
+        queryParams: { prompt: "select_account" },
+      },
+    });
+    if (error) throw new Error(supabaseAuthMessage(error));
+  }, [supabase]);
+
   const signUp = useCallback(
     async (email: string, password: string) => {
-      const { data, error } = await supabase.auth.signUp({ email, password });
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/login`,
+        },
+      });
       if (error) throw new Error(supabaseAuthMessage(error));
       return { needsConfirm: !data.session };
     },
@@ -193,10 +213,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       loading,
       signIn,
       signInEmployee,
+      signInWithGoogle,
       signUp,
       signOut,
     }),
-    [kind, session, employeeSession, accessToken, loading, signIn, signInEmployee, signUp, signOut],
+    [kind, session, employeeSession, accessToken, loading, signIn, signInEmployee, signInWithGoogle, signUp, signOut],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

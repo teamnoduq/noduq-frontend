@@ -228,6 +228,83 @@ button {
     0 24px 64px color-mix(in srgb, #000 38%, transparent);
 }
 
+.auth-card-wide {
+  width: min(100%, 440px);
+}
+
+.mail-sample {
+  margin: 18px 0 0;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--cian) 22%, var(--line));
+  background: color-mix(in srgb, var(--cian) 6%, var(--well));
+}
+
+.mail-sample figcaption {
+  font-family: var(--font-mono), monospace;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--cian);
+}
+
+.mail-sample p {
+  margin: 8px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--mist-2);
+}
+
+.mail-sample strong {
+  font-family: var(--font-mono), monospace;
+  color: var(--cian);
+  letter-spacing: 0.08em;
+}
+
+.mail-sample-note {
+  color: var(--mist-3) !important;
+  font-size: 12px !important;
+}
+
+.mail-sample em {
+  font-style: normal;
+  color: var(--mist);
+}
+
+.auth-or {
+  margin: 0;
+  text-align: center;
+  color: var(--mist-4);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: lowercase;
+}
+
+.btn-google {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: var(--control-h);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line-strong);
+  background: color-mix(in srgb, var(--mist) 6%, transparent);
+  color: var(--mist);
+  font: inherit;
+  font-weight: 560;
+  cursor: pointer;
+}
+
+.btn-google:hover:not(:disabled) {
+  border-color: var(--cian);
+  color: var(--cian);
+}
+
+.btn-google:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .auth-kicker {
   margin: 14px 0 0;
   font-family: var(--font-mono), monospace;

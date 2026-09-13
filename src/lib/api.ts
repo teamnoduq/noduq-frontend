@@ -47,7 +47,7 @@ export async function api<T>(
     throw new ApiError(
       0,
       "NETWORK",
-      "El servidor no responde. ¿Está el API de NODUQ en http://localhost:8080?",
+      "El servidor no responde. Inténtalo de nuevo.",
     );
   }
 

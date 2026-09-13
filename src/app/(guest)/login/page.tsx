@@ -1,11 +1,10 @@
 "use client";
 
 import { Brand } from "@/components/brand";
-import { LoginIdeaNav, LoginMotion, useLoginIdea } from "@/components/login-motion";
 import { Banner, Button, Field, ModeSwitch, PasswordInput, TextInput } from "@/components/ui";
 import { useAuth } from "@/components/auth-provider";
 import Link from "next/link";
-import { FormEvent, Suspense, useEffect, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 
 const MODES = [
   { id: "account", label: "Cuenta" },
@@ -13,16 +12,7 @@ const MODES = [
 ];
 
 export default function LoginPage() {
-  return (
-    <Suspense fallback={<div className="auth-stage" />}>
-      <LoginInner />
-    </Suspense>
-  );
-}
-
-function LoginInner() {
   const { signIn, signInEmployee, signInWithGoogle } = useAuth();
-  const idea = useLoginIdea();
   const [mode, setMode] = useState("account");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -88,8 +78,6 @@ function LoginInner() {
 
   return (
     <div className="auth-stage">
-      <LoginIdeaNav idea={idea} />
-      <div className={idea === "base" ? "auth-solo" : "auth-split"}>
       <div className="auth-card">
         <Brand />
         <h1>Entrar</h1>
@@ -184,8 +172,6 @@ function LoginInner() {
             </>
           )}
         </p>
-      </div>
-      {idea !== "base" ? <LoginMotion idea={idea} /> : null}
       </div>
     </div>
   );

@@ -69,3 +69,7 @@ export async function api<T>(
 export function isNotProvisioned(error: unknown): boolean {
   return error instanceof ApiError && error.code === "NOT_PROVISIONED";
 }
+
+export function isUnauthorized(error: unknown): boolean {
+  return error instanceof ApiError && (error.status === 401 || error.code === "UNAUTHORIZED");
+}

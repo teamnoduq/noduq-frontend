@@ -1,6 +1,6 @@
 "use client";
 
-import { isNotProvisioned } from "@/lib/api";
+import { isNotProvisioned, isUnauthorized } from "@/lib/api";
 import { getMe, workspaceFromEmployee } from "@/lib/identity";
 import type { Workspace } from "@/lib/types";
 import { useAuth } from "@/components/auth-provider";
@@ -25,7 +25,7 @@ type WorkspaceContextValue = {
 const WorkspaceContext = createContext<WorkspaceContextValue | null>(null);
 
 export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
-  const { kind, accessToken, employeeSession, loading: authLoading } = useAuth();
+  const { kind, accessToken, employeeSession, loading: authLoading, signOut } = useAuth();
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [provisioned, setProvisioned] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -63,6 +63,13 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         setError(null);
         return;
       }
+      if (isUnauthorized(err) && kind === "owner") {
+        setWorkspace(null);
+        setProvisioned(false);
+        setError(null);
+        await signOut();
+        return;
+      }
       setWorkspace(null);
       setProvisioned(false);
       setError(err instanceof Error ? err.message : "No se pudo cargar la cuenta.");
@@ -70,7 +77,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
       setLoading(false);
       setReady(true);
     }
-  }, [kind, accessToken, employeeSession]);
+  }, [kind, accessToken, employeeSession, signOut]);
 
   useEffect(() => {
     if (authLoading) return;

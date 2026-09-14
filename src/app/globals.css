@@ -846,6 +846,134 @@ button {
   border-color: color-mix(in srgb, var(--danger) 40%, transparent);
 }
 
+.auth-forgot {
+  margin: -6px 0 0;
+  text-align: right;
+  font-size: 13px;
+}
+
+.auth-forgot a {
+  color: var(--cian);
+  font-weight: 560;
+}
+
+.auth-quiet {
+  display: block;
+  width: 100%;
+  margin-top: 14px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--mist-3);
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+}
+
+.auth-quiet:hover {
+  color: var(--cian);
+}
+
+.plan-price {
+  margin: 16px 0 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--mist);
+}
+
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chip {
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: 99px;
+  border: 1px solid var(--line-strong);
+  background: transparent;
+  color: var(--mist-2);
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.chip:hover:not(:disabled):not(.is-on) {
+  border-color: var(--cian);
+  color: var(--cian);
+}
+
+.chip.is-on {
+  border-color: color-mix(in srgb, var(--cian) 45%, var(--line));
+  background: color-mix(in srgb, var(--cian) 18%, transparent);
+  color: var(--cian);
+}
+
+.chip:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.pay-filters {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 0.9fr 0.9fr auto;
+  gap: 12px 14px;
+  align-items: end;
+  margin: 8px 0 22px;
+}
+
+.pay-filter-actions {
+  display: flex;
+  gap: 8px;
+  padding-bottom: 2px;
+}
+
+.pay-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--ink);
+}
+
+.pay-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.pay-table th,
+.pay-table td {
+  padding: 12px 14px;
+  text-align: left;
+  vertical-align: top;
+  border-bottom: 1px solid var(--line);
+}
+
+.pay-table th {
+  color: var(--mist-4);
+  font-weight: 500;
+  font-size: 12px;
+}
+
+.pay-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.pay-amount {
+  font-weight: 600;
+  color: var(--cian);
+  white-space: nowrap;
+}
+
+.pay-note {
+  margin-top: 4px;
+  color: var(--mist-4);
+  font-size: 12px;
+  max-width: 36ch;
+}
+
 @media (max-width: 860px) {
   .desk {
     display: block;
@@ -900,6 +1028,14 @@ button {
   .page-head {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .pay-filters {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .pay-filter-actions {
+    grid-column: 1 / -1;
   }
 
   .auth-stage {

@@ -38,7 +38,7 @@ export default function SetupPage() {
         displayName: displayName.trim() || undefined,
       });
       applyWorkspace(workspace);
-      router.replace("/");
+      router.replace("/plan");
     } catch (err) {
       setError(err instanceof Error ? err.message : "No se pudo crear la organización.");
     } finally {
@@ -81,7 +81,7 @@ export default function SetupPage() {
           </Field>
           {error ? <Banner>{error}</Banner> : null}
           <Button type="submit" className="btn-block" loading={submitting}>
-            {submitting ? "Guardando…" : "Abrir el panel"}
+            {submitting ? "Guardando…" : "Continuar"}
           </Button>
         </form>
       </div>

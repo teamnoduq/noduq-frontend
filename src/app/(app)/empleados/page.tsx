@@ -16,6 +16,15 @@ import { Copy, Plus } from "@phosphor-icons/react";
 import { FormEvent, useCallback, useEffect, useState } from "react";
 
 const USERNAME_HINT = "Letras minúsculas, números o _ · 3 a 32. Si lo dejas vacío, lo generamos.";
+const LOOKBACK = [
+  { days: 1, label: "Hoy" },
+  { days: 3, label: "3 días" },
+  { days: 7, label: "7 días" },
+];
+
+function lookbackLabel(days: number): string {
+  return LOOKBACK.find((item) => item.days === days)?.label ?? `${days} días`;
+}
 
 export default function EmpleadosPage() {
   const { accessToken } = useAuth();
@@ -55,6 +64,7 @@ export default function EmpleadosPage() {
         displayName: created.displayName,
         username: created.username,
         active: created.active,
+        lookbackDays: created.lookbackDays ?? 1,
         createdAt: new Date().toISOString(),
       };
       const exists = current.some((item) => item.id === created.id);
@@ -162,7 +172,9 @@ export default function EmpleadosPage() {
             <li key={employee.id} className="employee-row">
               <div>
                 <div className="employee-name">{employee.displayName}</div>
-                <div className="employee-user">{employee.username}</div>
+                <div className="employee-user">
+                  {employee.username} · ve {lookbackLabel(employee.lookbackDays)}
+                </div>
               </div>
               <span className={employee.active ? "badge badge-on" : "badge badge-off"}>
                 {employee.active ? "Activo" : "Inactivo"}
@@ -423,12 +435,14 @@ function EditEmployeeDialog({
   const [error, setError] = useState<string | null>(null);
   const [nameError, setNameError] = useState<string | null>(null);
   const [userError, setUserError] = useState<string | null>(null);
+  const [lookbackDays, setLookbackDays] = useState(1);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (employee) {
       setDisplayName(employee.displayName);
       setUsername(employee.username);
+      setLookbackDays(employee.lookbackDays || 1);
       setError(null);
       setNameError(null);
       setUserError(null);
@@ -456,6 +470,7 @@ function EditEmployeeDialog({
       const next = await patchEmployee(token, employee.id, {
         displayName: name,
         username: rawUser,
+        lookbackDays,
       });
       onSaved(next);
     } catch (err) {
@@ -497,6 +512,22 @@ function EditEmployeeDialog({
             error={Boolean(userError)}
           />
         </Field>
+        <div className="field">
+          <span className="field-label">Avisos que ve</span>
+          <div className="chip-row" role="group" aria-label="Días de avisos">
+            {LOOKBACK.map((option) => (
+              <button
+                key={option.days}
+                type="button"
+                className={lookbackDays === option.days ? "chip is-on" : "chip"}
+                disabled={submitting}
+                onClick={() => setLookbackDays(option.days)}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
         {error ? <Banner>{error}</Banner> : null}
         <div className="row-actions">
           <Button type="submit" loading={submitting}>

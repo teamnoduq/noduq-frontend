@@ -33,6 +33,7 @@ type AuthContextValue = {
   signInEmployee: (username: string, code: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
   signUp: (email: string, password: string) => Promise<{ needsConfirm: boolean }>;
+  resetPassword: (email: string) => Promise<void>;
   signOut: () => Promise<void>;
 };
 
@@ -181,6 +182,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [supabase],
   );
 
+  const resetPassword = useCallback(
+    async (email: string) => {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/recuperar`,
+      });
+      if (error) throw new Error(supabaseAuthMessage(error));
+    },
+    [supabase],
+  );
+
   const signOut = useCallback(async () => {
     const token = employeeSession?.token;
     const current = kind;
@@ -215,9 +226,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signInEmployee,
       signInWithGoogle,
       signUp,
+      resetPassword,
       signOut,
     }),
-    [kind, session, employeeSession, accessToken, loading, signIn, signInEmployee, signInWithGoogle, signUp, signOut],
+    [kind, session, employeeSession, accessToken, loading, signIn, signInEmployee, signInWithGoogle, signUp, resetPassword, signOut],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

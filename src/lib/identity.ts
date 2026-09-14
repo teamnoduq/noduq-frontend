@@ -4,6 +4,7 @@ import type {
   Employee,
   EmployeeSessionPayload,
   Organization,
+  Plan,
   Profile,
   Workspace,
 } from "@/lib/types";
@@ -67,7 +68,7 @@ export function createEmployee(
 export function patchEmployee(
   token: string,
   id: string,
-  body: { displayName?: string; username?: string; active?: boolean },
+  body: { displayName?: string; username?: string; active?: boolean; lookbackDays?: number },
 ) {
   return api<Employee>(`/v1/employees/${id}`, token, {
     method: "PATCH",
@@ -104,6 +105,10 @@ export function deleteEmployeeSession(token: string) {
   });
 }
 
+export function activatePlan(token: string) {
+  return api<Plan>("/v1/billing/activate", token, { method: "POST" });
+}
+
 export function workspaceFromEmployee(payload: EmployeeSessionPayload): Workspace {
   return {
     profile: {
@@ -113,5 +118,11 @@ export function workspaceFromEmployee(payload: EmployeeSessionPayload): Workspac
     organization: payload.organization,
     role: "employee",
     branches: [payload.branch],
+    plan: {
+      entitlement: "noduq_sms",
+      status: "active",
+      periodEndsAt: null,
+      active: true,
+    },
   };
 }

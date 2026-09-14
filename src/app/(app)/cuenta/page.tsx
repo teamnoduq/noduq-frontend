@@ -4,8 +4,9 @@ import { useAuth } from "@/components/auth-provider";
 import { useToast } from "@/components/toast";
 import { Button, Dialog, Field, TextInput } from "@/components/ui";
 import { useWorkspace } from "@/components/workspace-provider";
+import { gmailConnect, gmailDisconnect, gmailStatus, type GmailStatus } from "@/lib/gmail";
 import { deleteMe, patchMe, patchOrganization } from "@/lib/identity";
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 
 export default function CuentaPage() {
   const { kind } = useAuth();
@@ -66,6 +67,27 @@ function OwnerAccount() {
   const [confirmation, setConfirmation] = useState("");
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [gmail, setGmail] = useState<GmailStatus | null>(null);
+  const [gmailBusy, setGmailBusy] = useState(false);
+
+  useEffect(() => {
+    if (!accessToken) return;
+    let alive = true;
+    void gmailStatus(accessToken)
+      .then((status) => {
+        if (alive) setGmail(status);
+      })
+      .catch(() => {
+        if (alive) setGmail(null);
+      });
+    if (new URLSearchParams(window.location.search).get("gmail") === "ok") {
+      toast.show("Gmail quedó conectado.", "ok");
+      window.history.replaceState({}, "", "/cuenta");
+    }
+    return () => {
+      alive = false;
+    };
+  }, [accessToken, toast]);
 
   async function onSaveProfile(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -185,6 +207,69 @@ function OwnerAccount() {
             </Button>
           </div>
         </form>
+      </section>
+
+      <section className="section">
+        <h2>Gmail</h2>
+        <p className="lede">
+          El SMS confirma el pago en el mostrador. Gmail es el mismo aviso, más tarde: si cuadra,
+          el pago queda verificado con correo.
+        </p>
+        <div className="stack">
+          {gmail == null ? (
+            <p className="lede">Cargando Gmail…</p>
+          ) : gmail.connected ? (
+            <>
+              <p>{gmail.address ?? "Gmail conectado"}</p>
+              <div className="row-actions">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  loading={gmailBusy}
+                  onClick={async () => {
+                    if (!accessToken) return;
+                    setGmailBusy(true);
+                    try {
+                      await gmailDisconnect(accessToken);
+                      setGmail({ ...gmail, connected: false, address: null });
+                      toast.show("Gmail se desconectó.", "ok");
+                    } catch (err) {
+                      toast.show(err instanceof Error ? err.message : "No se pudo soltar Gmail.", "error");
+                    } finally {
+                      setGmailBusy(false);
+                    }
+                  }}
+                >
+                  Soltar Gmail
+                </Button>
+              </div>
+            </>
+          ) : !gmail.configured ? (
+            <p className="lede">
+              El servidor todavía no tiene el cliente de Gmail. Cuando esté, el botón aparece aquí.
+            </p>
+          ) : (
+            <div className="row-actions">
+              <Button
+                type="button"
+                loading={gmailBusy}
+                onClick={async () => {
+                  if (!accessToken) return;
+                  setGmailBusy(true);
+                  try {
+                    const connect = await gmailConnect(accessToken);
+                    window.location.assign(connect.authorizationUrl);
+                  } catch (err) {
+                    toast.show(err instanceof Error ? err.message : "No se pudo abrir Gmail.", "error");
+                    setGmailBusy(false);
+                  }
+                }}
+              >
+                Conectar Gmail
+              </Button>
+            </div>
+          )}
+        </div>
       </section>
 
       <section className="section">

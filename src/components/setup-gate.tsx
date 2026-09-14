@@ -10,7 +10,7 @@ import { useEffect } from "react";
 export function SetupGate({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { kind, loading: authLoading } = useAuth();
-  const { provisioned, loading: workspaceLoading, error, refresh } = useWorkspace();
+  const { provisioned, hasPlan, loading: workspaceLoading, error, refresh } = useWorkspace();
 
   useEffect(() => {
     if (authLoading) return;
@@ -24,8 +24,8 @@ export function SetupGate({ children }: { children: React.ReactNode }) {
     }
     if (workspaceLoading) return;
     if (error) return;
-    if (provisioned) router.replace("/");
-  }, [authLoading, kind, workspaceLoading, provisioned, error, router]);
+    if (provisioned) router.replace(hasPlan ? "/" : "/plan");
+  }, [authLoading, kind, workspaceLoading, provisioned, hasPlan, error, router]);
 
   if (authLoading || (kind === "owner" && workspaceLoading)) {
     return <BootScreen label="Cargando…" />;

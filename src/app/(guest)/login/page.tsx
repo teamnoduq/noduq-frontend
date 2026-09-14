@@ -111,6 +111,9 @@ export default function LoginPage() {
                   disabled={submitting}
                 />
               </Field>
+              <p className="auth-forgot">
+                <Link href="/olvide">Olvidé mi contraseña</Link>
+              </p>
             </>
           ) : (
             <>

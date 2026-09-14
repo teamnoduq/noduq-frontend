@@ -20,7 +20,19 @@ export type Workspace = {
   organization: Organization;
   role: "owner" | "employee" | string;
   branches: Branch[];
+  plan: Plan;
 };
+
+export type Plan = {
+  entitlement: string | null;
+  status: string;
+  periodEndsAt: string | null;
+  active: boolean;
+};
+
+export function isPlanActive(workspace: Workspace | null | undefined): boolean {
+  return workspace?.plan?.active === true;
+}
 
 export type EmployeeSessionPayload = {
   token: string;
@@ -36,6 +48,7 @@ export type Employee = {
   displayName: string;
   username: string;
   active: boolean;
+  lookbackDays: number;
   createdAt: string;
 };
 
@@ -45,5 +58,23 @@ export type CreatedEmployee = {
   displayName: string;
   username: string;
   active: boolean;
+  lookbackDays: number;
   code: string;
+};
+
+export type PaymentNotice = {
+  id: string;
+  source: string;
+  payerName: string | null;
+  amount: number | null;
+  amountLabel: string | null;
+  currency: string;
+  occurredAt: string | null;
+  receivedAt: string;
+  readable: boolean;
+  confirmedByEmail: boolean;
+};
+
+export type PaymentFeed = {
+  notices: PaymentNotice[];
 };

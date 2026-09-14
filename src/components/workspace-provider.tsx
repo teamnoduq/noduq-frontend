@@ -2,7 +2,7 @@
 
 import { isNotProvisioned } from "@/lib/api";
 import { getMe, workspaceFromEmployee } from "@/lib/identity";
-import type { Workspace } from "@/lib/types";
+import { isPlanActive, type Workspace } from "@/lib/types";
 import { useAuth } from "@/components/auth-provider";
 import {
   createContext,
@@ -16,6 +16,7 @@ import {
 type WorkspaceContextValue = {
   workspace: Workspace | null;
   provisioned: boolean;
+  hasPlan: boolean;
   loading: boolean;
   error: string | null;
   refresh: () => Promise<void>;
@@ -87,6 +88,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     () => ({
       workspace,
       provisioned,
+      hasPlan: isPlanActive(workspace),
       loading: authLoading || !ready || loading,
       error,
       refresh,

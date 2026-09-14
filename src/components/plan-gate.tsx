@@ -1,6 +1,5 @@
 "use client";
 
-import { AppShell } from "@/components/app-shell";
 import { useAuth } from "@/components/auth-provider";
 import { BootScreen } from "@/components/boot-screen";
 import { Banner, Button } from "@/components/ui";
@@ -8,7 +7,7 @@ import { useWorkspace } from "@/components/workspace-provider";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
-export function AppGuard({ children }: { children: React.ReactNode }) {
+export function PlanGate({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { kind, loading: authLoading } = useAuth();
   const { provisioned, hasPlan, loading: workspaceLoading, error, refresh } = useWorkspace();
@@ -19,24 +18,31 @@ export function AppGuard({ children }: { children: React.ReactNode }) {
       router.replace("/login");
       return;
     }
+    if (kind === "employee") {
+      router.replace("/");
+      return;
+    }
     if (workspaceLoading) return;
     if (error) return;
-    if (kind === "owner" && !provisioned) router.replace("/setup");
-    else if (kind === "owner" && !hasPlan) router.replace("/plan");
+    if (!provisioned) {
+      router.replace("/setup");
+      return;
+    }
+    if (hasPlan) router.replace("/");
   }, [authLoading, kind, workspaceLoading, provisioned, hasPlan, error, router]);
 
-  if (authLoading || (kind && workspaceLoading)) {
+  if (authLoading || (kind === "owner" && workspaceLoading)) {
     return <BootScreen label="Cargando…" />;
   }
-  if (!kind) return <BootScreen />;
+  if (!kind || kind === "employee") return <BootScreen />;
   if (error) {
     return (
-      <div className="boot">
+      <div className="auth-stage">
         <div className="auth-card">
           <Banner>
             {error}
             <div className="banner-actions">
-              <Button type="button" onClick={() => void refresh()}>
+              <Button type="button" variant="ghost" onClick={() => void refresh()}>
                 Reintentar
               </Button>
             </div>
@@ -45,6 +51,6 @@ export function AppGuard({ children }: { children: React.ReactNode }) {
       </div>
     );
   }
-  if (kind === "owner" && (!provisioned || !hasPlan)) return <BootScreen />;
-  return <AppShell>{children}</AppShell>;
+  if (!provisioned || hasPlan) return <BootScreen />;
+  return <>{children}</>;
 }

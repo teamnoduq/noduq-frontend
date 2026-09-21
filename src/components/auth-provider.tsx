@@ -173,7 +173,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/login`,
+          emailRedirectTo: `${window.location.origin}/confirmar`,
         },
       });
       if (error) throw new Error(supabaseAuthMessage(error));

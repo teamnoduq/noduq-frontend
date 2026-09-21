@@ -149,6 +149,57 @@ button {
   width: min(100%, 440px);
 }
 
+.mail-sent {
+  text-align: center;
+}
+
+.mail-sent-disc {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  margin: 8px auto 12px;
+  border-radius: 50%;
+  color: var(--cian);
+  background: color-mix(in srgb, var(--cian) 16%, transparent);
+  animation: mail-sent-wash 1.8s cubic-bezier(0.23, 1, 0.32, 1) infinite alternate;
+}
+
+@keyframes mail-sent-wash {
+  from {
+    background: color-mix(in srgb, var(--cian) 16%, transparent);
+  }
+  to {
+    background: color-mix(in srgb, var(--cian) 32%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mail-sent-disc {
+    animation: none;
+  }
+}
+
+.mail-sent h1 {
+  margin: 8px 0 0;
+}
+
+.mail-sent-tip {
+  margin: 18px 0 0;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--ink) 70%, #000);
+  color: var(--mist-3);
+  font-size: 14px;
+  line-height: 1.45;
+  text-align: center;
+}
+
+.mail-sent .btn {
+  margin-top: 24px;
+}
+
 .mail-sample {
   margin: 18px 0 0;
   padding: 14px 16px;

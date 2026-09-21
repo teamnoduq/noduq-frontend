@@ -34,6 +34,7 @@ type AuthContextValue = {
   signInWithGoogle: () => Promise<void>;
   signUp: (email: string, password: string) => Promise<{ needsConfirm: boolean }>;
   resetPassword: (email: string) => Promise<void>;
+  resendSignup: (email: string) => Promise<void>;
   signOut: () => Promise<void>;
 };
 
@@ -192,6 +193,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [supabase],
   );
 
+  const resendSignup = useCallback(
+    async (email: string) => {
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email,
+        options: { emailRedirectTo: `${window.location.origin}/confirmar` },
+      });
+      if (error) throw new Error(supabaseAuthMessage(error));
+    },
+    [supabase],
+  );
+
   const signOut = useCallback(async () => {
     const token = employeeSession?.token;
     const current = kind;
@@ -227,9 +240,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signInWithGoogle,
       signUp,
       resetPassword,
+      resendSignup,
       signOut,
     }),
-    [kind, session, employeeSession, accessToken, loading, signIn, signInEmployee, signInWithGoogle, signUp, resetPassword, signOut],
+    [kind, session, employeeSession, accessToken, loading, signIn, signInEmployee, signInWithGoogle, signUp, resetPassword, resendSignup, signOut],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

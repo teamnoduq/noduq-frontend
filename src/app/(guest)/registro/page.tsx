@@ -3,11 +3,12 @@
 import { Brand } from "@/components/brand";
 import { Banner, Button, Field, PasswordInput, TextInput } from "@/components/ui";
 import { useAuth } from "@/components/auth-provider";
+import { MailSentView } from "@/components/mail-sent";
 import Link from "next/link";
 import { FormEvent, useState } from "react";
 
 export default function RegistroPage() {
-  const { signUp, signInWithGoogle } = useAuth();
+  const { signUp, signInWithGoogle, resendSignup } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -61,15 +62,18 @@ export default function RegistroPage() {
       <div className="auth-stage">
         <div className="auth-card">
           <Brand />
-          <p className="auth-kicker">Correo</p>
-          <h1>Confirma tu cuenta</h1>
-          <p className="auth-lede">
-            Te escribimos a <strong>{waitingMail}</strong> desde NODUQ. Abre el enlace de ese
-            mensaje (no uno viejo) y vuelve a entrar.
-          </p>
-          <p className="auth-switch">
-            ¿Ya confirmaste? <Link href="/login">Entrar</Link>
-          </p>
+          <MailSentView
+            icon="mail"
+            title="Revisa tu bandeja de entrada"
+            tip="Si no lo encuentras en unos segundos, revisa tu carpeta de spam o correo no deseado."
+            primary="Ir al inicio de sesión"
+            primaryHref="/login"
+            secondary="¿No lo recibiste? Reenviar correo"
+            onSecondary={() => resendSignup(waitingMail)}
+          >
+            Enviamos un enlace de confirmación a <strong>{waitingMail}</strong>. Haz clic en el
+            enlace para activar tu cuenta y comenzar.
+          </MailSentView>
         </div>
       </div>
     );

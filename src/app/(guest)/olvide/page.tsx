@@ -2,6 +2,7 @@
 
 import { Brand } from "@/components/brand";
 import { Banner, Button, Field, TextInput } from "@/components/ui";
+import { MailSentView } from "@/components/mail-sent";
 import { useAuth } from "@/components/auth-provider";
 import Link from "next/link";
 import { FormEvent, useState } from "react";
@@ -36,31 +37,45 @@ export default function ForgotPage() {
     <div className="auth-stage">
       <div className="auth-card">
         <Brand />
-        <h1>Restablecer contraseña</h1>
-        <p className="auth-lede">Te escribimos un enlace. Lo abres y eliges la clave nueva.</p>
         {done ? (
-          <Banner>Revisa el correo. Si no llega, mira en spam.</Banner>
+          <MailSentView
+            icon="key"
+            title="Te enviamos las instrucciones"
+            primary="Volver a iniciar sesión"
+            primaryHref="/login"
+            secondary="¿No recibiste el enlace? Intentar de nuevo"
+            onSecondary={() => resetPassword(email.trim())}
+          >
+            Si el correo está registrado en NODUQ, recibirás un enlace para crear una nueva
+            contraseña en <strong>{email.trim()}</strong>.
+          </MailSentView>
         ) : (
-          <form className="auth-form" onSubmit={onSubmit} noValidate>
-            <Field id="email" label="Correo">
-              <TextInput
-                id="email"
-                type="email"
-                autoComplete="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                disabled={submitting}
-              />
-            </Field>
-            {error ? <Banner>{error}</Banner> : null}
-            <Button type="submit" className="btn-block" loading={submitting}>
-              Enviar enlace
-            </Button>
-          </form>
+          <>
+            <h1>Restablecer contraseña</h1>
+            <p className="auth-lede">
+              Ingresa tu correo y te enviaremos un enlace para crear una nueva contraseña.
+            </p>
+            <form className="auth-form" onSubmit={onSubmit} noValidate>
+              <Field id="email" label="Correo">
+                <TextInput
+                  id="email"
+                  type="email"
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={submitting}
+                />
+              </Field>
+              {error ? <Banner>{error}</Banner> : null}
+              <Button type="submit" className="btn-block" loading={submitting}>
+                Enviar enlace
+              </Button>
+            </form>
+            <p className="auth-switch">
+              <Link href="/login">Volver a entrar</Link>
+            </p>
+          </>
         )}
-        <p className="auth-switch">
-          <Link href="/login">Volver a entrar</Link>
-        </p>
       </div>
     </div>
   );

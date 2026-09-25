@@ -881,7 +881,7 @@ button {
   padding: 0;
   border: 0;
   background: none;
-  color: var(--mist-3);
+  color: #f87171;
   font: inherit;
   font-size: 14px;
   font-weight: 500;
@@ -890,7 +890,35 @@ button {
 
 .plan-cancel:hover,
 .plan-cancel:focus-visible {
-  color: var(--mist);
+  color: #fca5a5;
+}
+
+.plan-benefits {
+  margin: 0 0 16px;
+  padding-left: 1.1em;
+  color: #d1d5db;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.plan-benefits li + li {
+  margin-top: 6px;
+}
+
+.plan-warn {
+  margin: 0 0 16px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, #b45309 40%, transparent);
+  background: color-mix(in srgb, #422006 20%, transparent);
+  color: #fde68a;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.btn-outline-cyan {
+  border-color: color-mix(in srgb, var(--cian) 45%, transparent) !important;
+  color: var(--cian) !important;
 }
 
 .btn-plain-danger {
@@ -918,6 +946,18 @@ button {
 
 .wait-muted .finder {
   color: var(--mist-3);
+}
+
+.empty-receipt {
+  width: 64px;
+  height: 64px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: #0f171a;
+  border: 1px solid var(--line);
+  color: var(--mist-3);
+  margin-bottom: 8px;
 }
 
 .toast-stack {

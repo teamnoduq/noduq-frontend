@@ -8,7 +8,7 @@ import { isPlanActive } from "@/lib/types";
 import type { PaymentNotice } from "@/lib/types";
 import { FormEvent, useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ShieldWarning } from "@phosphor-icons/react";
+import { Receipt } from "@phosphor-icons/react";
 
 function formatWhen(iso: string | null): string {
   if (!iso) return "—";
@@ -182,7 +182,9 @@ export default function PagosPage() {
           <div className="empty-box">Ningún aviso con esos filtros.</div>
         ) : !planOn ? (
           <div className="wait wait-muted">
-            <ShieldWarning size={48} weight="fill" className="finder" aria-hidden="true" />
+            <span className="empty-receipt" aria-hidden="true">
+              <Receipt size={28} weight="fill" />
+            </span>
             <h2>Validación automática inactiva</h2>
             <p>
               Activa tu plan para que NODUQ valide los pagos por QR y notifique a tu equipo en

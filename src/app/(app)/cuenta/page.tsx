@@ -6,7 +6,7 @@ import { Button, Dialog, Field, TextInput } from "@/components/ui";
 import { useWorkspace } from "@/components/workspace-provider";
 import { gmailConnect, gmailDisconnect, gmailStatus, type GmailStatus } from "@/lib/gmail";
 import { deleteMe, patchMe, patchOrganization, cancelPlan, reactivatePlan } from "@/lib/identity";
-import { isPlanCancelling, isPlanRenewing } from "@/lib/types";
+import { isPlanActive, isPlanCancelling, isPlanRenewing } from "@/lib/types";
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -78,7 +78,6 @@ function OwnerAccount() {
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingOrg, setSavingOrg] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const [confirmation, setConfirmation] = useState("");
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [gmail, setGmail] = useState<GmailStatus | null>(null);
@@ -151,17 +150,12 @@ function OwnerAccount() {
     }
   }
 
-  async function onDeleteAccount(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function onDeleteAccount() {
     if (!accessToken) return;
     setDeleteError(null);
-    if (!confirmation.trim()) {
-      setDeleteError("Escribe el nombre de la organización para confirmar.");
-      return;
-    }
     setDeleting(true);
     try {
-      await deleteMe(accessToken, confirmation);
+      await deleteMe(accessToken);
       toast.show("La cuenta se borró.", "ok");
       await signOut();
     } catch (err) {
@@ -256,7 +250,7 @@ function OwnerAccount() {
         </section>
       ) : (
         <section className="section">
-          <h2>Plan</h2>
+          <h2>{isPlanRenewing(workspace) ? "Plan" : "Plan Pro NODUQ"}</h2>
           {isPlanRenewing(workspace) ? (
             <>
               <p className="lede">Activo. NODUQ valida y avisa los pagos.</p>
@@ -267,7 +261,10 @@ function OwnerAccount() {
             </>
           ) : (
             <>
-              <p className="lede">Sin plan, NODUQ no valida ni avisa los pagos.</p>
+              <ul className="plan-benefits">
+                <li>Validaciones automáticas e ilimitadas por SMS y Correo.</li>
+                <li>Notificaciones instantáneas para tu equipo en el mostrador.</li>
+              </ul>
               <div className="row-actions">
                 <Button type="button" onClick={() => router.push("/plan")}>
                   Activar plan · $24.900/mes
@@ -342,29 +339,16 @@ function OwnerAccount() {
       </section>
 
       <section className="section">
-        <h2>Sesión</h2>
-        <p className="lede">Sales de este navegador. Las sesiones de empleados no se cierran.</p>
+        <h2>Sesión y cuenta</h2>
         <div className="stack">
           <div className="row-actions">
             <Button type="button" variant="ghost" onClick={() => void signOut()}>
               Cerrar sesión
             </Button>
           </div>
-        </div>
-      </section>
-
-      <section className="section">
-        <h2>Borrar cuenta</h2>
-        <p className="lede">
-          Se borra la organización, los empleados y el acceso. Para confirmar, escribe el nombre
-          exacto de la organización.
-        </p>
-        <div className="stack">
-          <div className="row-actions">
-            <Button type="button" variant="danger" onClick={() => setDeleteOpen(true)}>
-              Borrar cuenta
-            </Button>
-          </div>
+          <button type="button" className="plan-cancel" onClick={() => setDeleteOpen(true)}>
+            Eliminar cuenta
+          </button>
         </div>
       </section>
 
@@ -408,47 +392,64 @@ function OwnerAccount() {
       </Dialog>
 
       <Dialog
+        className="modal-plan"
         open={deleteOpen}
         onClose={() => {
+          if (deleting) return;
           setDeleteOpen(false);
-          setConfirmation("");
           setDeleteError(null);
         }}
-        title="Borrar la cuenta"
-        danger
+        title="¿Eliminar cuenta de NODUQ?"
       >
         <p className="modal-copy">
-          Escribe <strong>{workspace?.organization.name}</strong> para continuar. Esto no se puede
-          deshacer.
+          Esta acción es irreversible. Se borrarán tus datos, la configuración de tu negocio y la
+          conexión con tus empleados de forma permanente.
         </p>
-        <form className="stack" onSubmit={onDeleteAccount} noValidate>
-          <Field id="confirm-org" label="Organización" error={deleteError ?? undefined}>
-            <TextInput
-              id="confirm-org"
-              value={confirmation}
-              onChange={(e) => setConfirmation(e.target.value)}
-              autoComplete="off"
-              disabled={deleting}
-              error={Boolean(deleteError)}
-            />
-          </Field>
-          <div className="row-actions">
-            <Button type="submit" variant="danger" loading={deleting}>
-              Borrar para siempre
+        {isPlanActive(workspace) ? (
+          <p className="plan-warn">
+            Atención: Borrar tu cuenta de NODUQ no cancela automáticamente tu cobro recurrente. Para
+            evitar futuros cobros, debes gestionar tu suscripción desde Google Play Store.
+          </p>
+        ) : null}
+        {deleteError ? <p className="field-error">{deleteError}</p> : null}
+        <div className="stack">
+          {isPlanActive(workspace) ? (
+            <>
+              <Button
+                type="button"
+                variant="ghost"
+                className="btn-outline-cyan"
+                onClick={() =>
+                  window.open(
+                    "https://play.google.com/store/account/subscriptions?package=com.noduq.app",
+                    "_blank",
+                    "noopener,noreferrer",
+                  )
+                }
+              >
+                Gestionar suscripción en Play Store
+              </Button>
+              <Button type="button" variant="danger" loading={deleting} onClick={() => void onDeleteAccount()}>
+                Entendido, eliminar mi cuenta de todos modos
+              </Button>
+            </>
+          ) : (
+            <Button type="button" variant="danger" loading={deleting} onClick={() => void onDeleteAccount()}>
+              Sí, eliminar mi cuenta
             </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => {
-                setDeleteOpen(false);
-                setConfirmation("");
-                setDeleteError(null);
-              }}
-            >
-              Cancelar
-            </Button>
-          </div>
-        </form>
+          )}
+          <Button
+            type="button"
+            variant="quiet"
+            disabled={deleting}
+            onClick={() => {
+              setDeleteOpen(false);
+              setDeleteError(null);
+            }}
+          >
+            Cancelar
+          </Button>
+        </div>
       </Dialog>
     </section>
   );

@@ -33,10 +33,9 @@ export function patchMe(token: string, body: { displayName: string }) {
   });
 }
 
-export function deleteMe(token: string, confirmation: string) {
+export function deleteMe(token: string) {
   return api<void>("/v1/me", token, {
     method: "DELETE",
-    body: JSON.stringify({ confirmation }),
   });
 }
 

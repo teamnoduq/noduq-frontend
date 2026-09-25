@@ -6,7 +6,7 @@ import { Button, Dialog, Field, TextInput } from "@/components/ui";
 import { useWorkspace } from "@/components/workspace-provider";
 import { gmailConnect, gmailDisconnect, gmailStatus, type GmailStatus } from "@/lib/gmail";
 import { deleteMe, patchMe, patchOrganization, cancelPlan, reactivatePlan } from "@/lib/identity";
-import { isPlanActive, isPlanCancelling, isPlanRenewing } from "@/lib/types";
+import { isPlanCancelling, isPlanRenewing } from "@/lib/types";
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -411,32 +411,9 @@ function OwnerAccount() {
       >
         <p className="modal-copy">
           Esta acción es permanente e irreversible. Perderás la configuración de tu local, tu
-          historial y la conexión con tus empleados.
+          historial y la conexión con tus empleados. Si el plan se cobra en Play, la renovación se
+          cancela al borrar la cuenta.
         </p>
-        {isPlanActive(workspace) ? (
-          <>
-            <p className="plan-warn">
-              Atención: Borrar la cuenta no cancela tu cobro recurrente. Cancela tu suscripción en
-              Google Play Store para evitar cargos.
-            </p>
-            <div className="stack plan-play-actions">
-              <Button
-                type="button"
-                variant="ghost"
-                className="btn-outline-cyan btn-block"
-                onClick={() =>
-                  window.open(
-                    "https://play.google.com/store/account/subscriptions?package=com.noduq.app",
-                    "_blank",
-                    "noopener,noreferrer",
-                  )
-                }
-              >
-                Gestionar suscripción en Play Store
-              </Button>
-            </div>
-          </>
-        ) : null}
         <p className="modal-confirm-label">
           Para confirmar, escribe el nombre de tu negocio (
           {workspace?.organization.name ?? "tu negocio"}):

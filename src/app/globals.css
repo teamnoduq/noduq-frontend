@@ -973,26 +973,6 @@ button {
   border-color: rgb(255 255 255 / 0.22);
 }
 
-.plan-play-actions {
-  margin-bottom: 16px;
-}
-
-.plan-warn {
-  margin: 0 0 16px;
-  padding: 12px;
-  border-radius: 12px;
-  border: 1px solid color-mix(in srgb, #b45309 40%, transparent);
-  background: color-mix(in srgb, #422006 20%, transparent);
-  color: #fde68a;
-  font-size: 12px;
-  line-height: 1.5;
-}
-
-.btn-outline-cyan {
-  border-color: color-mix(in srgb, var(--cian) 45%, transparent) !important;
-  color: var(--cian) !important;
-}
-
 .btn-plain-danger {
   min-height: 44px;
   padding: 8px 12px;

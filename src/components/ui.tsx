@@ -190,12 +190,14 @@ export function Dialog({
   title,
   children,
   danger = false,
+  className = "",
 }: {
   open: boolean;
   onClose: () => void;
   title: string;
   children: ReactNode;
   danger?: boolean;
+  className?: string;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
@@ -210,7 +212,7 @@ export function Dialog({
   return (
     <dialog
       ref={ref}
-      className={danger ? "modal modal-danger" : "modal"}
+      className={["modal", danger ? "modal-danger" : "", className].filter(Boolean).join(" ")}
       aria-labelledby={titleId}
       onClose={onClose}
       onClick={(event) => {

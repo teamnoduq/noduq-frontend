@@ -868,6 +868,58 @@ button {
   border-color: color-mix(in srgb, var(--danger) 28%, var(--line));
 }
 
+.modal-plan .modal-sheet {
+  background: #0f171a;
+  border-radius: 1rem;
+}
+
+.plan-cancel {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--mist-3);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.plan-cancel:hover,
+.plan-cancel:focus-visible {
+  color: var(--mist);
+}
+
+.btn-plain-danger {
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 0;
+  background: none;
+  color: #f87171;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.btn-plain-danger:hover,
+.btn-plain-danger:focus-visible {
+  color: #fecaca;
+}
+
+.wait-muted {
+  background:
+    radial-gradient(420px 220px at 12% 0%, color-mix(in srgb, var(--mist-3) 8%, transparent), transparent 70%),
+    var(--ink);
+}
+
+.wait-muted .finder {
+  color: var(--mist-3);
+}
+
 .toast-stack {
   position: fixed;
   right: 16px;

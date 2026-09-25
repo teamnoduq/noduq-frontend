@@ -5,8 +5,10 @@ import { useToast } from "@/components/toast";
 import { Button, Dialog, Field, TextInput } from "@/components/ui";
 import { useWorkspace } from "@/components/workspace-provider";
 import { gmailConnect, gmailDisconnect, gmailStatus, type GmailStatus } from "@/lib/gmail";
-import { deleteMe, patchMe, patchOrganization } from "@/lib/identity";
+import { deleteMe, patchMe, patchOrganization, cancelPlan, reactivatePlan } from "@/lib/identity";
+import { isPlanCancelling, isPlanRenewing } from "@/lib/types";
 import { FormEvent, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 export default function CuentaPage() {
   const { kind } = useAuth();
@@ -53,8 +55,20 @@ function EmployeeAccount() {
   );
 }
 
+function formatPeriodEnd(iso: string | null): string {
+  if (!iso) return "el final del periodo";
+  const formatted = new Intl.DateTimeFormat("es-CO", {
+    timeZone: "America/Bogota",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(new Date(iso));
+  return formatted;
+}
+
 function OwnerAccount() {
   const toast = useToast();
+  const router = useRouter();
   const { accessToken, user, signOut } = useAuth();
   const { workspace, applyWorkspace } = useWorkspace();
   const [displayName, setDisplayName] = useState(workspace?.profile.displayName ?? "");
@@ -69,6 +83,8 @@ function OwnerAccount() {
   const [deleting, setDeleting] = useState(false);
   const [gmail, setGmail] = useState<GmailStatus | null>(null);
   const [gmailBusy, setGmailBusy] = useState(false);
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [planBusy, setPlanBusy] = useState(false);
 
   useEffect(() => {
     if (!accessToken) return;
@@ -209,6 +225,59 @@ function OwnerAccount() {
         </form>
       </section>
 
+      {isPlanCancelling(workspace) ? (
+        <section className="section">
+          <h2>Suscripción cancelada</h2>
+          <p className="lede">
+            Tu suscripción finaliza el {formatPeriodEnd(workspace?.plan.periodEndsAt ?? null)}. Hasta
+            esa fecha la validación automática seguirá funcionando.
+          </p>
+          <div className="row-actions">
+            <Button
+              type="button"
+              loading={planBusy}
+              onClick={async () => {
+                if (!accessToken) return;
+                setPlanBusy(true);
+                try {
+                  const plan = await reactivatePlan(accessToken);
+                  if (workspace) applyWorkspace({ ...workspace, plan });
+                  toast.show("El plan quedó activo otra vez.", "ok");
+                } catch (err) {
+                  toast.show(err instanceof Error ? err.message : "No se pudo reactivar.", "error");
+                } finally {
+                  setPlanBusy(false);
+                }
+              }}
+            >
+              Reactivar plan
+            </Button>
+          </div>
+        </section>
+      ) : (
+        <section className="section">
+          <h2>Plan</h2>
+          {isPlanRenewing(workspace) ? (
+            <>
+              <p className="lede">Activo. NODUQ valida y avisa los pagos.</p>
+              <p className="lede">$24.900 / mes · cancela cuando quieras.</p>
+              <button type="button" className="plan-cancel" onClick={() => setCancelOpen(true)}>
+                Cancelar suscripción
+              </button>
+            </>
+          ) : (
+            <>
+              <p className="lede">Sin plan, NODUQ no valida ni avisa los pagos.</p>
+              <div className="row-actions">
+                <Button type="button" onClick={() => router.push("/plan")}>
+                  Activar plan · $24.900/mes
+                </Button>
+              </div>
+            </>
+          )}
+        </section>
+      )}
+
       <section className="section">
         <h2>Gmail</h2>
         <p className="lede">
@@ -298,6 +367,45 @@ function OwnerAccount() {
           </div>
         </div>
       </section>
+
+      <Dialog
+        className="modal-plan"
+        open={cancelOpen}
+        onClose={() => {
+          if (!planBusy) setCancelOpen(false);
+        }}
+        title="¿Deseas cancelar tu suscripción?"
+      >
+        <p className="modal-copy">
+          Tus empleados dejarán de recibir la confirmación de pagos en el mostrador al finalizar el
+          periodo actual.
+        </p>
+        <div className="row-actions">
+          <Button type="button" onClick={() => setCancelOpen(false)}>
+            Mantener mi plan
+          </Button>
+          <button
+            type="button"
+            className="btn-plain-danger"
+            disabled={planBusy}
+            onClick={async () => {
+              if (!accessToken) return;
+              setPlanBusy(true);
+              try {
+                const plan = await cancelPlan(accessToken);
+                if (workspace) applyWorkspace({ ...workspace, plan });
+                setCancelOpen(false);
+              } catch (err) {
+                toast.show(err instanceof Error ? err.message : "No se pudo cancelar.", "error");
+              } finally {
+                setPlanBusy(false);
+              }
+            }}
+          >
+            Sí, cancelar plan
+          </button>
+        </div>
+      </Dialog>
 
       <Dialog
         open={deleteOpen}

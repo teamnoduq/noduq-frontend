@@ -109,6 +109,14 @@ export function activatePlan(token: string) {
   return api<Plan>("/v1/billing/activate", token, { method: "POST" });
 }
 
+export function cancelPlan(token: string) {
+  return api<Plan>("/v1/billing/cancel", token, { method: "POST" });
+}
+
+export function reactivatePlan(token: string) {
+  return api<Plan>("/v1/billing/reactivate", token, { method: "POST" });
+}
+
 export function workspaceFromEmployee(payload: EmployeeSessionPayload): Workspace {
   return {
     profile: {

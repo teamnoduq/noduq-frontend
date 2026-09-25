@@ -48,7 +48,7 @@ export default function PlanPage() {
         <p className="auth-kicker">Plan</p>
         <h1>Activa NODUQ</h1>
         <p className="auth-lede">
-          SMS del 85540 y correo de Bancolombia. $38.900 al mes. Si sales ahora, volvemos aquí
+          SMS del 85540 y correo de Bancolombia. $24.900 al mes. Si sales ahora, volvemos aquí
           hasta que el plan quede pago.
         </p>
         <p className="plan-price">Android · SMS + correo</p>

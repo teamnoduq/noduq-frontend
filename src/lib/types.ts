@@ -34,6 +34,14 @@ export function isPlanActive(workspace: Workspace | null | undefined): boolean {
   return workspace?.plan?.active === true;
 }
 
+export function isPlanCancelling(workspace: Workspace | null | undefined): boolean {
+  return workspace?.plan?.active === true && workspace.plan.status.toLowerCase() === "cancelled";
+}
+
+export function isPlanRenewing(workspace: Workspace | null | undefined): boolean {
+  return isPlanActive(workspace) && !isPlanCancelling(workspace);
+}
+
 export type EmployeeSessionPayload = {
   token: string;
   expiresAt: string;

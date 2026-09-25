@@ -4,8 +4,11 @@ import { useAuth } from "@/components/auth-provider";
 import { Banner, Button, Field, TextInput } from "@/components/ui";
 import { useWorkspace } from "@/components/workspace-provider";
 import { listPayments } from "@/lib/payments";
+import { isPlanActive } from "@/lib/types";
 import type { PaymentNotice } from "@/lib/types";
 import { FormEvent, useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { ShieldWarning } from "@phosphor-icons/react";
 
 function formatWhen(iso: string | null): string {
   if (!iso) return "—";
@@ -39,8 +42,10 @@ const EMPTY_FILTERS: Filters = { q: "", source: "", since: "", until: "" };
 export default function PagosPage() {
   const { accessToken, kind } = useAuth();
   const { workspace } = useWorkspace();
+  const router = useRouter();
   const org = workspace?.organization.name;
   const employee = kind === "employee";
+  const planOn = employee || isPlanActive(workspace);
   const [notices, setNotices] = useState<PaymentNotice[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -175,6 +180,20 @@ export default function PagosPage() {
       ) : notices.length === 0 ? (
         filtering ? (
           <div className="empty-box">Ningún aviso con esos filtros.</div>
+        ) : !planOn ? (
+          <div className="wait wait-muted">
+            <ShieldWarning size={48} weight="fill" className="finder" aria-hidden="true" />
+            <h2>Validación automática inactiva</h2>
+            <p>
+              Activa tu plan para que NODUQ valide los pagos por QR y notifique a tu equipo en
+              tiempo real.
+            </p>
+            <div className="row-actions">
+              <Button type="button" onClick={() => router.push("/plan")}>
+                Activar plan · $24.900/mes
+              </Button>
+            </div>
+          </div>
         ) : (
           <div className="wait">
             <QrFinder />

@@ -70,6 +70,21 @@ export type CreatedEmployee = {
   code: string;
 };
 
+export type DeskTicket = {
+  id: string;
+  secret: string;
+  payload: string;
+  expiresAt: string;
+};
+
+export type DeskPoll = {
+  status: "pending" | "expired" | "claimed";
+  expiresAt?: string;
+  kind?: "owner" | "employee";
+  hashedToken?: string;
+  employee?: EmployeeSessionPayload;
+};
+
 export type PaymentNotice = {
   id: string;
   source: string;
@@ -85,4 +100,36 @@ export type PaymentNotice = {
 
 export type PaymentFeed = {
   notices: PaymentNotice[];
+  count: number;
+  totalAmount: number;
+};
+
+export type StatsPoint = {
+  key: string;
+  label: string;
+  detail: string;
+  count: number;
+  amount: number;
+};
+
+export type StatsReport = {
+  grain: "day" | "month" | string;
+  year: number;
+  month: number | null;
+  bucketCount: number;
+  count: number;
+  amount: number;
+  uniquePayers: number;
+  averageCount: number;
+  averageAmount: number;
+  averagePerPayment: number;
+  previousCount: number;
+  previousAmount: number;
+  countChangePercent: number | null;
+  amountChangePercent: number | null;
+  peak: StatsPoint | null;
+  low: StatsPoint | null;
+  bucketsWithSales: number;
+  bucketsEmpty: number;
+  points: StatsPoint[];
 };

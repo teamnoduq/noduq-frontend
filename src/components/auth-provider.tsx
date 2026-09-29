@@ -32,6 +32,11 @@ type AuthContextValue = {
   signIn: (email: string, password: string) => Promise<void>;
   signInEmployee: (username: string, code: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
+  completeDeskLogin: (poll: {
+    kind?: "owner" | "employee";
+    hashedToken?: string;
+    employee?: EmployeeSessionPayload;
+  }) => Promise<void>;
   signUp: (email: string, password: string) => Promise<{ needsConfirm: boolean }>;
   resetPassword: (email: string) => Promise<void>;
   resendSignup: (email: string) => Promise<void>;
@@ -168,6 +173,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (error) throw new Error(supabaseAuthMessage(error));
   }, [supabase]);
 
+  const completeDeskLogin = useCallback(
+    async (poll: { kind?: "owner" | "employee"; hashedToken?: string; employee?: EmployeeSessionPayload }) => {
+      if (poll.kind === "owner") {
+        const hash = poll.hashedToken?.trim();
+        if (!hash) throw new Error("El código se usó, pero no llegó la sesión.");
+        clearEmployeeToken();
+        setEmployeeSession(null);
+        const { error } = await supabase.auth.verifyOtp({
+          token_hash: hash,
+          type: "email",
+        });
+        if (error) throw new Error(supabaseAuthMessage(error));
+        return;
+      }
+      if (poll.kind === "employee") {
+        const opened = poll.employee;
+        if (!opened?.token) throw new Error("El código se usó, pero no llegó la sesión.");
+        writeEmployeeToken(opened.token);
+        const me = await getEmployeeMe(opened.token);
+        writeEmployeeToken(me.token);
+        setEmployeeSession(me);
+        setKind("employee");
+        setSession(null);
+        await supabase.auth.signOut();
+        return;
+      }
+      throw new Error("El código se usó, pero no se reconoce la sesión.");
+    },
+    [supabase],
+  );
+
   const signUp = useCallback(
     async (email: string, password: string) => {
       const { data, error } = await supabase.auth.signUp({
@@ -238,12 +274,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       signIn,
       signInEmployee,
       signInWithGoogle,
+      completeDeskLogin,
       signUp,
       resetPassword,
       resendSignup,
       signOut,
     }),
-    [kind, session, employeeSession, accessToken, loading, signIn, signInEmployee, signInWithGoogle, signUp, resetPassword, resendSignup, signOut],
+    [kind, session, employeeSession, accessToken, loading, signIn, signInEmployee, signInWithGoogle, completeDeskLogin, signUp, resetPassword, resendSignup, signOut],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

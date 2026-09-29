@@ -58,11 +58,12 @@ export function Field({
   const errorId = error ? `${id}-error` : undefined;
   const describedBy = [hintId, errorId].filter(Boolean).join(" ") || undefined;
   const control = isValidElement(children)
-    ? cloneElement(children as ReactElement<Record<string, unknown>>, {
-        id,
-        error: Boolean(error),
-        describedBy,
-      })
+    ? cloneElement(
+        children as ReactElement<Record<string, unknown>>,
+        typeof children.type === "string"
+          ? { id }
+          : { id, error: Boolean(error), describedBy },
+      )
     : children;
   return (
     <div className="field">
@@ -107,13 +108,15 @@ export function ModeSwitch({
   value,
   onChange,
   options,
+  ariaLabel = "Cuenta o empleado",
 }: {
   value: string;
   onChange: (value: string) => void;
   options: { id: string; label: string }[];
+  ariaLabel?: string;
 }) {
   return (
-    <div className="mode-switch" role="tablist" aria-label="Cuenta o empleado">
+    <div className="mode-switch" role="tablist" aria-label={ariaLabel}>
       {options.map((option) => {
         const on = option.id === value;
         return (

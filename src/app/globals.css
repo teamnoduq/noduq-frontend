@@ -1111,6 +1111,405 @@ button {
   cursor: not-allowed;
 }
 
+.pay-head {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 16px;
+  align-items: end;
+  margin-bottom: 18px;
+}
+
+.pay-head h1,
+.pay-period {
+  margin: 0;
+  color: #fff;
+  font-weight: 650;
+  letter-spacing: -0.03em;
+}
+
+.pay-head h1 {
+  font-size: 28px;
+  line-height: 1.15;
+}
+
+.pay-period {
+  font-size: 22px;
+}
+
+.pay-total {
+  margin: 0;
+  color: #fff;
+  font-size: 28px;
+  font-weight: 650;
+  letter-spacing: -0.03em;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.pay-count {
+  margin: 0;
+  color: var(--mist-3);
+  font-size: 12px;
+  text-align: right;
+}
+
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  margin-bottom: 14px;
+  padding: 0 14px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: var(--well);
+  color: var(--mist-3);
+}
+
+.search-box:focus-within {
+  border-color: var(--cian);
+}
+
+.search-box input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--mist);
+  font: inherit;
+  outline: none;
+}
+
+.search-box input::placeholder {
+  color: var(--mist-4);
+}
+
+.chip-scroll {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  margin-bottom: 18px;
+  padding-bottom: 2px;
+}
+
+.chip-scroll .chip.is-on,
+.chip-scroll .chip.is-own {
+  border-color: transparent;
+  background: var(--cian);
+  color: var(--night);
+  font-weight: 650;
+}
+
+.pay-days {
+  display: grid;
+  gap: 18px;
+}
+
+.pay-days h2 {
+  margin: 0 0 8px;
+  color: var(--mist-3);
+  font-size: 13px;
+  font-weight: 550;
+}
+
+.pay-days ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.pay-days li {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: var(--ink);
+}
+
+.pay-days li strong {
+  display: block;
+  color: #fff;
+  font-weight: 600;
+}
+
+.pay-days li span {
+  color: var(--mist-3);
+  font-size: 12px;
+}
+
+.pay-day-amount {
+  text-align: right;
+}
+
+.pay-day-amount span {
+  display: block;
+  color: var(--cian);
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.pay-day-amount em {
+  color: var(--ok);
+  font-style: normal;
+  font-size: 11px;
+}
+
+.choice-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+}
+
+.choice-list button {
+  width: 100%;
+  min-height: 44px;
+  padding: 8px 4px;
+  border: 0;
+  background: none;
+  color: var(--mist);
+  text-align: left;
+  font: inherit;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.choice-list button.is-on {
+  color: var(--cian);
+  font-weight: 650;
+}
+
+.stats {
+  display: grid;
+  gap: 14px;
+}
+
+.stats-title {
+  margin: 0 0 16px;
+  color: #fff;
+  font-size: 28px;
+  letter-spacing: -0.03em;
+}
+
+.stats-tip {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 4px 8px 12px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--cian) 20%, transparent);
+  background: var(--well);
+  color: var(--cian);
+}
+
+.stats-tip p {
+  flex: 1;
+  margin: 2px 0 0;
+  color: var(--mist);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.stats-tip button {
+  width: 32px;
+  height: 32px;
+  border: 0;
+  background: none;
+  color: var(--mist-3);
+  cursor: pointer;
+}
+
+.stats-card {
+  padding: 16px;
+  border-radius: 18px;
+  border: 1px solid var(--line);
+  background: var(--ink);
+}
+
+.stats-card h2 {
+  margin: 0;
+  color: #fff;
+  font-size: 16px;
+}
+
+.stats-card > p {
+  margin: 6px 0 14px;
+  color: var(--mist-3);
+  font-size: 13px;
+}
+
+.trend-plot {
+  position: relative;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  align-items: end;
+  height: 168px;
+}
+
+.trend-plot svg {
+  position: absolute;
+  inset: 8px 0 4px;
+  width: 100%;
+  height: calc(100% - 12px);
+  overflow: visible;
+}
+
+.trend-plot polyline {
+  fill: none;
+  stroke: #00f2fe;
+  stroke-width: 1.6;
+  vector-effect: non-scaling-stroke;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.trend-plot button {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.trend.is-bars button span {
+  position: absolute;
+  left: 18%;
+  right: 18%;
+  bottom: 4px;
+  height: calc(var(--rise) * 148px);
+  min-height: 2px;
+  border-radius: 4px 4px 0 0;
+  background: #00f2fe;
+  opacity: 0.55;
+}
+
+.trend.is-bars button.is-on span {
+  opacity: 1;
+}
+
+.trend:not(.is-bars) button span {
+  position: absolute;
+  left: 50%;
+  bottom: calc(8px + var(--rise) * 140px);
+  width: 8px;
+  height: 8px;
+  margin-left: -4px;
+  border-radius: 99px;
+  background: #00f2fe;
+}
+
+.trend:not(.is-bars) button.is-on span {
+  background: #fff;
+  width: 10px;
+  height: 10px;
+  margin-left: -5px;
+}
+
+.trend-axis {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  margin-top: 4px;
+  color: var(--mist-4);
+  font-size: 10px;
+  text-align: center;
+}
+
+.stats-headlines {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.stats-headlines div {
+  padding: 14px;
+  border-radius: 16px;
+  border: 1px solid color-mix(in srgb, #00f2fe 20%, transparent);
+  background: var(--ink);
+}
+
+.stats-headlines span {
+  display: block;
+  color: var(--mist-3);
+  font-size: 12px;
+}
+
+.stats-headlines strong {
+  display: block;
+  margin-top: 6px;
+  font-size: 20px;
+  letter-spacing: -0.03em;
+}
+
+.stats-headlines .is-soft {
+  color: #d7f8fc;
+}
+
+.stats-headlines .is-value,
+.stats-rows .is-value {
+  color: #00f2fe;
+}
+
+.stats-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.stats-rows li {
+  display: grid;
+  grid-template-columns: 16px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: var(--well);
+  color: var(--mist-3);
+  font-size: 13px;
+}
+
+.stats-rows strong {
+  color: #fff;
+  font-weight: 650;
+  text-align: right;
+}
+
+.metric-icon {
+  display: grid;
+  color: var(--cian);
+}
+
+.metric-icon.is-violet { color: #c084fc; }
+.metric-icon.is-amber,
+.stats-rows .is-amber { color: #fbbf24; }
+.metric-icon.is-emerald,
+.stats-rows .badge.is-emerald { color: #34d399; }
+.metric-icon.is-rose,
+.stats-rows .badge.is-rose { color: #f87171; }
+.metric-icon.is-muted { color: var(--mist-4); }
+
+.stats-rows .badge {
+  border-radius: 99px;
+  padding: 2px 8px;
+}
+
+.stats-rows .badge.is-emerald {
+  background: color-mix(in srgb, #34d399 16%, transparent);
+}
+
+.stats-rows .badge.is-rose {
+  background: color-mix(in srgb, #f87171 16%, transparent);
+}
+
 .pay-filters {
   display: grid;
   grid-template-columns: 1.4fr 1fr 0.9fr 0.9fr auto;
@@ -1244,6 +1643,321 @@ button {
   .auth-card h1 {
     font-size: 24px;
     margin-top: 18px;
+  }
+}
+
+.desk-login {
+  min-height: 100dvh;
+  display: grid;
+  grid-template-columns: 1fr;
+  background: #03181b;
+  color: var(--mist);
+  caret-color: var(--cian);
+}
+
+.desk-login ::selection {
+  background: color-mix(in srgb, var(--cian) 38%, transparent);
+  color: var(--night);
+}
+
+.desk-login-panel {
+  order: 1;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  padding: 48px 20px 32px;
+  background: #03181b;
+}
+
+/* On a phone only the download block survives; the photo and headline belong to the wide layout. */
+.desk-login-brand {
+  order: 2;
+  display: grid;
+  margin: 0 20px;
+  padding: 28px 0 40px;
+  border-top: 1px solid var(--line);
+}
+
+.desk-login-brand .desk-lockup,
+.desk-login-brand .desk-tagline {
+  display: none;
+}
+
+.desk-login-brand .desk-brand-foot {
+  width: min(100%, 28rem);
+  margin: 0 auto;
+}
+
+.desk-login-card {
+  width: min(100%, 28rem);
+}
+
+.desk-login-card h1 {
+  margin: 0;
+  font-size: 32px;
+  font-weight: 650;
+  letter-spacing: -0.035em;
+  line-height: 1.1;
+  text-wrap: balance;
+}
+
+.desk-login-lede {
+  margin: 8px 0 0;
+  color: var(--mist-2);
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.desk-methods {
+  margin-top: 28px;
+}
+
+.desk-methods .mode-switch,
+.desk-who .mode-switch {
+  margin-top: 0;
+}
+
+.desk-who {
+  margin-top: 12px;
+}
+
+.desk-login .auth-form {
+  margin-top: 22px;
+}
+
+.desk-login .input {
+  border-color: color-mix(in srgb, var(--mist) 14%, #021113);
+  background: var(--night);
+}
+
+.desk-login .input:focus {
+  border-color: var(--cian);
+  box-shadow: 0 0 0 3px var(--cian-soft);
+}
+
+.desk-login .btn-google {
+  gap: 10px;
+}
+
+.google-mark {
+  flex-shrink: 0;
+}
+
+.desk-lockup {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.desk-lockup .brand-word {
+  font-size: 15px;
+  letter-spacing: 0.16em;
+}
+
+.desk-tagline {
+  margin: 0;
+  max-width: 22ch;
+  font-size: clamp(30px, 2.9vw, 42px);
+  font-weight: 620;
+  letter-spacing: -0.035em;
+  line-height: 1.1;
+  text-wrap: balance;
+}
+
+.desk-brand-foot {
+  display: grid;
+  gap: 18px;
+}
+
+.desk-app-note {
+  margin: 0;
+  max-width: 40ch;
+  color: color-mix(in srgb, var(--mist) 68%, transparent);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.store-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 12px;
+  padding-top: 8px;
+}
+
+.store-badge {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 8px 16px 8px 12px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--mist) 16%, transparent);
+  background: color-mix(in srgb, var(--night) 55%, transparent);
+  color: var(--mist);
+}
+
+.store-badge strong {
+  font-size: 14px;
+  font-weight: 620;
+  letter-spacing: -0.02em;
+}
+
+.store-soon {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  padding: 3px 7px;
+  border-radius: 7px;
+  background: var(--cian);
+  color: var(--night);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.desk-qr {
+  margin-top: 28px;
+}
+
+.desk-qr-frame {
+  width: 212px;
+  height: 212px;
+  margin: 0 auto;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  background: var(--mist);
+  border: 1px solid color-mix(in srgb, var(--cian) 55%, transparent);
+  box-shadow: 0 0 0 8px color-mix(in srgb, var(--cian) 10%, transparent);
+}
+
+.desk-qr-mark {
+  width: 188px;
+  height: 188px;
+  animation: desk-qr-in 420ms var(--ease) both;
+}
+
+.desk-qr-mark svg {
+  display: block;
+  width: 188px;
+  height: 188px;
+}
+
+.desk-qr-steps {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 18px 0 0;
+  color: var(--mist-2);
+  font-size: 13.5px;
+  line-height: 1.45;
+  text-align: center;
+}
+
+.desk-qr-meter {
+  height: 3px;
+  margin-top: 18px;
+  border-radius: 99px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--cian) 16%, transparent);
+}
+
+.desk-qr-meter i {
+  display: block;
+  height: 100%;
+  width: 100%;
+  transform-origin: left center;
+  background: var(--cian);
+  animation: desk-qr-life 30s linear forwards;
+}
+
+.desk-qr-status {
+  margin: 10px 0 0;
+  color: var(--mist-3);
+  font-size: 12px;
+  line-height: 1.4;
+  text-align: center;
+}
+
+@keyframes desk-qr-in {
+  from {
+    opacity: 0.35;
+    filter: blur(8px);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+
+@keyframes desk-qr-life {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
+@media (min-width: 1024px) {
+  .desk-login {
+    grid-template-columns: 1fr 1fr;
+    height: 100dvh;
+    overflow: hidden;
+    background: var(--night);
+  }
+
+  .desk-login-brand .desk-lockup {
+    display: flex;
+  }
+
+  .desk-login-brand .desk-tagline {
+    display: block;
+  }
+
+  .desk-login-brand .desk-brand-foot {
+    width: auto;
+    margin: 0;
+  }
+
+  .desk-login-brand {
+    order: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 32px;
+    min-width: 0;
+    min-height: 100dvh;
+    margin: 0;
+    padding: 56px 56px 52px;
+    border-top: 0;
+    overflow: hidden;
+    background-color: var(--night);
+    background-image:
+      linear-gradient(
+        to top,
+        var(--night) 6%,
+        color-mix(in srgb, var(--night) 82%, transparent) 30%,
+        color-mix(in srgb, var(--night) 24%, transparent) 58%,
+        color-mix(in srgb, var(--night) 55%, transparent) 100%
+      ),
+      url("/login-mostrador.png");
+    background-size: cover, auto 132%;
+    background-position: center, 50% 100%;
+    background-repeat: no-repeat;
+  }
+
+  .desk-login-panel {
+    min-height: 100dvh;
+    padding: 40px 48px;
+    overflow: auto;
+    background: #03181b;
   }
 }
 

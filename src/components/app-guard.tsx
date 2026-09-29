@@ -11,7 +11,7 @@ import { useEffect } from "react";
 export function AppGuard({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { kind, loading: authLoading } = useAuth();
-  const { provisioned, hasPlan, loading: workspaceLoading, error, refresh } = useWorkspace();
+  const { provisioned, loading: workspaceLoading, error, refresh } = useWorkspace();
 
   useEffect(() => {
     if (authLoading) return;
@@ -22,8 +22,7 @@ export function AppGuard({ children }: { children: React.ReactNode }) {
     if (workspaceLoading) return;
     if (error) return;
     if (kind === "owner" && !provisioned) router.replace("/setup");
-    else if (kind === "owner" && !hasPlan) router.replace("/plan");
-  }, [authLoading, kind, workspaceLoading, provisioned, hasPlan, error, router]);
+  }, [authLoading, kind, workspaceLoading, provisioned, error, router]);
 
   if (authLoading || (kind && workspaceLoading)) {
     return <BootScreen label="Cargando…" />;
@@ -45,6 +44,6 @@ export function AppGuard({ children }: { children: React.ReactNode }) {
       </div>
     );
   }
-  if (kind === "owner" && (!provisioned || !hasPlan)) return <BootScreen />;
+  if (kind === "owner" && !provisioned) return <BootScreen />;
   return <AppShell>{children}</AppShell>;
 }

@@ -1,56 +1,55 @@
 "use client";
 
 import { useAuth } from "@/components/auth-provider";
-import { Banner, Button, Field, TextInput } from "@/components/ui";
+import { PlanInactive } from "@/components/plan-inactive";
+import { Banner, Button, Dialog } from "@/components/ui";
 import { useWorkspace } from "@/components/workspace-provider";
+import {
+  bogotaToday,
+  copLabel,
+  dayRange,
+  groupedInt,
+  monthName,
+  monthNames,
+  monthRange,
+  windowRange,
+  yearRange,
+} from "@/lib/calendar";
 import { listPayments } from "@/lib/payments";
 import { isPlanActive } from "@/lib/types";
 import type { PaymentNotice } from "@/lib/types";
-import { FormEvent, useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { Receipt } from "@phosphor-icons/react";
+import { MagnifyingGlass } from "@phosphor-icons/react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
-function formatWhen(iso: string | null): string {
-  if (!iso) return "—";
-  return new Intl.DateTimeFormat("es-CO", {
-    timeZone: "America/Bogota",
-    day: "numeric",
-    month: "short",
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(new Date(iso));
-}
+type RangeId = "hoy" | "ayer" | "mes" | "anio" | "todos" | "ventana";
 
-function sourceLabel(source: string): string {
-  if (source === "email") return "Correo";
-  if (source === "sms") return "SMS";
-  return source;
-}
+type Window = { since?: string; until?: string };
 
-function bogotaStart(date: string): string {
-  return new Date(`${date}T00:00:00-05:00`).toISOString();
-}
-
-function bogotaNext(date: string): string {
-  return new Date(new Date(`${date}T00:00:00-05:00`).getTime() + 86_400_000).toISOString();
-}
-
-type Filters = { q: string; source: string; since: string; until: string };
-
-const EMPTY_FILTERS: Filters = { q: "", source: "", since: "", until: "" };
+const FIRST_YEAR = 2026;
 
 export default function PagosPage() {
-  const { accessToken, kind } = useAuth();
+  const { accessToken, kind, employeeSession } = useAuth();
   const { workspace } = useWorkspace();
-  const router = useRouter();
-  const org = workspace?.organization.name;
   const employee = kind === "employee";
   const planOn = employee || isPlanActive(workspace);
+  const lookback = employeeLookback(employeeSession?.employee.lookbackDays);
+  const today = bogotaToday();
+  const [range, setRange] = useState<RangeId>("hoy");
+  const [month, setMonth] = useState(today.month);
+  const [year, setYear] = useState(today.year);
+  const [query, setQuery] = useState("");
+  const [appliedQuery, setAppliedQuery] = useState("");
+  const [sheet, setSheet] = useState<"mes" | "anio" | null>(null);
   const [notices, setNotices] = useState<PaymentNotice[]>([]);
+  const [count, setCount] = useState(0);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [draft, setDraft] = useState<Filters>(EMPTY_FILTERS);
-  const [applied, setApplied] = useState<Filters>(EMPTY_FILTERS);
+
+  const span = useMemo(
+    () => payWindow(range, month, year, lookback),
+    [range, month, year, lookback],
+  );
 
   const load = useCallback(async () => {
     if (!accessToken) return;
@@ -59,108 +58,82 @@ export default function PagosPage() {
     try {
       const feed = await listPayments(
         accessToken,
-        employee
-          ? { limit: 100 }
-          : {
-              limit: 100,
-              q: applied.q.trim() || undefined,
-              source: applied.source || undefined,
-              since: applied.since ? bogotaStart(applied.since) : undefined,
-              until: applied.until ? bogotaNext(applied.until) : undefined,
-            },
+        {
+          limit: 100,
+          q: appliedQuery.trim() || undefined,
+          since: span.since,
+          until: span.until,
+        },
         employee,
       );
       setNotices(feed.notices);
+      setCount(feed.count ?? feed.notices.length);
+      setTotal(feed.totalAmount ?? 0);
     } catch (err) {
       setError(err instanceof Error ? err.message : "No se pudieron cargar los avisos.");
     } finally {
       setLoading(false);
     }
-  }, [accessToken, employee, applied]);
+  }, [accessToken, appliedQuery, employee, span.since, span.until]);
 
   useEffect(() => {
     void load();
   }, [load]);
 
-  function onFilter(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setApplied({ ...draft });
-  }
+  useEffect(() => {
+    const handle = window.setTimeout(() => setAppliedQuery(query), 280);
+    return () => window.clearTimeout(handle);
+  }, [query]);
 
-  const filtering =
-    !employee && (applied.q.trim() !== "" || applied.source !== "" || applied.since !== "" || applied.until !== "");
+  const heading = payHeading(range, month, year, lookback);
+  const groups = groupByDay(notices);
+  const years = yearChoices(today.year);
+
+  function choose(id: RangeId) {
+    if (id === "mes") {
+      setSheet("mes");
+      return;
+    }
+    if (id === "anio") {
+      setSheet("anio");
+      return;
+    }
+    setRange(id);
+  }
 
   return (
     <section>
-      <header className="page-head">
-        <div>
-          <h1>Pagos</h1>
-          <p className="lede">
-            Aquí llega el aviso cuando confirmen el QR de Bancolombia. NODUQ lee el mensaje tal
-            cual llega, de los remitentes del banco.
-          </p>
-        </div>
+      <header className="pay-head">
+        <h1>{heading.title}</h1>
+        <p className="pay-total">{copLabel(total)}</p>
+        {heading.period ? <p className="pay-period">{heading.period}</p> : <span />}
+        <p className="pay-count">{countLabel(count)}</p>
       </header>
 
-      {!employee ? (
-        <form className="pay-filters" onSubmit={onFilter}>
-          <Field id="pay-q" label="Quién pagó">
-            <TextInput
-              id="pay-q"
-              value={draft.q}
-              onChange={(e) => setDraft((current) => ({ ...current, q: e.target.value }))}
-              placeholder="Nombre"
-            />
-          </Field>
-          <Field id="pay-source" label="Origen">
-            <div className="chip-row" role="group" aria-label="Origen del aviso">
-              {[
-                { id: "", label: "Todos" },
-                { id: "sms", label: "SMS" },
-                { id: "email", label: "Correo" },
-              ].map((option) => (
-                <button
-                  key={option.id || "all"}
-                  type="button"
-                  className={draft.source === option.id ? "chip is-on" : "chip"}
-                  onClick={() => setDraft((current) => ({ ...current, source: option.id }))}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-          </Field>
-          <Field id="pay-since" label="Desde">
-            <TextInput
-              id="pay-since"
-              type="date"
-              value={draft.since}
-              onChange={(e) => setDraft((current) => ({ ...current, since: e.target.value }))}
-            />
-          </Field>
-          <Field id="pay-until" label="Hasta">
-            <TextInput
-              id="pay-until"
-              type="date"
-              value={draft.until}
-              onChange={(e) => setDraft((current) => ({ ...current, until: e.target.value }))}
-            />
-          </Field>
-          <div className="pay-filter-actions">
-            <Button type="submit">Filtrar</Button>
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => {
-                setDraft(EMPTY_FILTERS);
-                setApplied(EMPTY_FILTERS);
-              }}
-            >
-              Limpiar
-            </Button>
-          </div>
-        </form>
-      ) : null}
+      <label className="search-box">
+        <MagnifyingGlass size={18} aria-hidden="true" />
+        <input
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="Buscar por nombre…"
+          aria-label="Buscar por nombre"
+        />
+      </label>
+
+      <div className="chip-row chip-scroll" role="tablist" aria-label="Periodo">
+        {(employee ? employeeChips(lookback) : ownerChips(month, year)).map((chip) => (
+          <button
+            key={chip.id}
+            type="button"
+            role="tab"
+            aria-selected={range === chip.id}
+            className={range === chip.id ? "chip is-on" : "chip"}
+            onClick={() => choose(chip.id)}
+          >
+            {chip.label}
+          </button>
+        ))}
+      </div>
 
       {error ? (
         <Banner>
@@ -178,88 +151,190 @@ export default function PagosPage() {
           Cargando avisos…
         </div>
       ) : notices.length === 0 ? (
-        filtering ? (
-          <div className="empty-box">Ningún aviso con esos filtros.</div>
-        ) : !planOn ? (
-          <div className="wait wait-muted">
-            <span className="empty-receipt" aria-hidden="true">
-              <Receipt size={28} weight="fill" />
-            </span>
-            <h2>Validación automática inactiva</h2>
-            <p>
-              Activa tu plan para que NODUQ valide los pagos por QR y notifique a tu equipo en
-              tiempo real.
-            </p>
-            <div className="row-actions">
-              <Button type="button" onClick={() => router.push("/plan")}>
-                Activar plan · $24.900/mes
-              </Button>
-            </div>
-          </div>
+        !planOn && !appliedQuery.trim() ? (
+          <PlanInactive />
         ) : (
-          <div className="wait">
-            <QrFinder />
-            <h2>
-              <span className="pulse" aria-hidden="true" />
-              Todavía no hay avisos
-            </h2>
-            <p>
-              Cuando paguen el QR, el aviso aparece aquí
-              {org ? ` en ${org}` : ""}. NODUQ lo muestra; no hace falta el comprobante que manda el
-              cliente.
-            </p>
+          <div className="empty-box">
+            {appliedQuery.trim() ? "Ningún aviso con ese nombre." : "Todavía no hay avisos en este periodo."}
           </div>
         )
       ) : (
-        <div className="pay-table-wrap">
-          <table className="pay-table">
-            <thead>
-              <tr>
-                <th>Cuándo</th>
-                <th>Quién</th>
-                <th>Monto</th>
-                <th>Origen</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {notices.map((notice) => (
-                <tr key={notice.id}>
-                  <td>{formatWhen(notice.occurredAt ?? notice.receivedAt)}</td>
-                  <td>
-                    {notice.payerName ?? (notice.readable ? "—" : "Sin leer")}
-                    {!notice.readable ? (
-                      <div className="pay-note">El banco avisó, pero no se pudieron leer nombre ni monto.</div>
-                    ) : null}
-                  </td>
-                  <td className="pay-amount">{notice.amountLabel ?? "—"}</td>
-                  <td>{sourceLabel(notice.source)}</td>
-                  <td>
-                    {notice.confirmedByEmail ? (
-                      <span className="badge badge-on">Verificado</span>
-                    ) : null}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <>
+          {!planOn ? <PlanInactive /> : null}
+          <div className="pay-days">
+            {groups.map((group) => (
+              <section key={group.day}>
+                <h2>{group.day}</h2>
+                <ul>
+                  {group.notices.map((notice) => (
+                    <li key={notice.id}>
+                      <div>
+                        <strong>{notice.payerName ?? (notice.readable ? "Transferencia Bancolombia" : "Sin leer")}</strong>
+                        <span>{formatWhen(notice.occurredAt ?? notice.receivedAt)}</span>
+                      </div>
+                      <div className="pay-day-amount">
+                        <span>{notice.amountLabel ?? "—"}</span>
+                        {notice.confirmedByEmail ? <em>Verificado</em> : null}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ))}
+          </div>
+        </>
       )}
+
+      <Dialog open={sheet === "mes"} onClose={() => setSheet(null)} title="Mes">
+        <ul className="choice-list">
+          {monthNames().map((name, index) => {
+            const value = index + 1;
+            const on = range === "mes" && month === value;
+            return (
+              <li key={name}>
+                <button
+                  type="button"
+                  className={on ? "is-on" : undefined}
+                  onClick={() => {
+                    setMonth(value);
+                    setRange("mes");
+                    setSheet(null);
+                  }}
+                >
+                  {name}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </Dialog>
+      <Dialog open={sheet === "anio"} onClose={() => setSheet(null)} title="Año">
+        <ul className="choice-list">
+          {years.map((value) => {
+            const on = range === "anio" && year === value;
+            return (
+              <li key={value}>
+                <button
+                  type="button"
+                  className={on ? "is-on" : undefined}
+                  onClick={() => {
+                    setYear(value);
+                    setRange("anio");
+                    setSheet(null);
+                  }}
+                >
+                  {value}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      </Dialog>
     </section>
   );
 }
 
-function QrFinder() {
-  return (
-    <svg className="finder" viewBox="0 0 72 72" fill="none" aria-hidden="true">
-      <path d="M8 22V12h10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-      <path d="M64 22V12H54" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-      <path d="M8 50v10h10" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-      <path d="M64 50v10H54" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-      <rect x="22" y="22" width="12" height="12" rx="2" stroke="currentColor" strokeWidth="2" />
-      <rect x="38" y="22" width="12" height="12" rx="2" stroke="currentColor" strokeWidth="2" />
-      <rect x="22" y="38" width="12" height="12" rx="2" stroke="currentColor" strokeWidth="2" />
-      <rect x="40" y="40" width="8" height="8" rx="1" fill="currentColor" opacity="0.7" />
-    </svg>
-  );
+function ownerChips(month: number, year: number): { id: RangeId; label: string }[] {
+  return [
+    { id: "hoy", label: "Hoy" },
+    { id: "ayer", label: "Ayer" },
+    { id: "mes", label: monthName(month) },
+    { id: "anio", label: String(year) },
+    { id: "todos", label: "Todos" },
+  ];
+}
+
+function employeeChips(lookback: number): { id: RangeId; label: string }[] {
+  const chips: { id: RangeId; label: string }[] = [{ id: "hoy", label: "Hoy" }];
+  if (lookback >= 3) {
+    chips.push({ id: "ayer", label: "Ayer" });
+    chips.push({ id: "ventana", label: `${lookback} días` });
+  }
+  return chips;
+}
+
+function employeeLookback(days: number | undefined): number {
+  if (days === 7 || days === 3) return days;
+  return 1;
+}
+
+function payWindow(range: RangeId, month: number, year: number, lookback: number): Window {
+  if (range === "hoy") return dayRange(0);
+  if (range === "ayer") return dayRange(1);
+  if (range === "ventana") return windowRange(lookback);
+  if (range === "mes") return monthRange(year, month);
+  if (range === "anio") return yearRange(year);
+  return {};
+}
+
+function payHeading(range: RangeId, month: number, year: number, lookback: number): { title: string; period: string | null } {
+  if (range === "mes") return { title: "Pagos de", period: `${monthName(month)} ${year}` };
+  if (range === "anio") return { title: "Pagos de", period: String(year) };
+  if (range === "ayer") return { title: "Pagos de ayer", period: null };
+  if (range === "ventana") return { title: `Últimos ${lookback} días`, period: null };
+  if (range === "todos") return { title: "Pagos", period: null };
+  return { title: "Pagos de hoy", period: null };
+}
+
+function countLabel(count: number): string {
+  return count === 1 ? "1 pago" : `${groupedInt(count)} pagos`;
+}
+
+function yearChoices(current: number): number[] {
+  const start = Math.min(FIRST_YEAR, current);
+  const years: number[] = [];
+  for (let value = current; value >= start; value -= 1) years.push(value);
+  return years;
+}
+
+function groupByDay(notices: PaymentNotice[]): { day: string; notices: PaymentNotice[] }[] {
+  const groups: { day: string; notices: PaymentNotice[] }[] = [];
+  for (const notice of notices) {
+    const day = dayTitle(notice.occurredAt ?? notice.receivedAt);
+    const last = groups[groups.length - 1];
+    if (last && last.day === day) last.notices.push(notice);
+    else groups.push({ day, notices: [notice] });
+  }
+  return groups;
+}
+
+function dayTitle(iso: string | null): string {
+  if (!iso) return "Reciente";
+  const date = new Date(iso);
+  const today = bogotaToday();
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Bogota",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const pick = (type: string) => Number(parts.find((part) => part.type === type)?.value);
+  const y = pick("year");
+  const m = pick("month");
+  const d = pick("day");
+  if (y === today.year && m === today.month && d === today.day) return "Hoy";
+  const yesterday = dayRange(1);
+  const yParts = new Date(yesterday.since);
+  const yp = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Bogota",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(yParts);
+  const yPick = (type: string) => Number(yp.find((part) => part.type === type)?.value);
+  if (y === yPick("year") && m === yPick("month") && d === yPick("day")) return "Ayer";
+  return new Intl.DateTimeFormat("es-CO", {
+    timeZone: "America/Bogota",
+    day: "numeric",
+    month: "short",
+  }).format(date);
+}
+
+function formatWhen(iso: string | null): string {
+  if (!iso) return "—";
+  return new Intl.DateTimeFormat("es-CO", {
+    timeZone: "America/Bogota",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(new Date(iso));
 }

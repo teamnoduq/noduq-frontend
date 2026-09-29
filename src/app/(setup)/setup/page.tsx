@@ -38,7 +38,7 @@ export default function SetupPage() {
         displayName: displayName.trim() || undefined,
       });
       applyWorkspace(workspace);
-      router.replace("/plan");
+      router.replace("/");
     } catch (err) {
       setError(err instanceof Error ? err.message : "No se pudo crear la organización.");
     } finally {

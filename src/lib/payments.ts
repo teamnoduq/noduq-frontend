@@ -1,5 +1,5 @@
 import { api } from "@/lib/api";
-import type { PaymentFeed } from "@/lib/types";
+import type { PaymentFeed, StatsReport } from "@/lib/types";
 
 export function listPayments(
   token: string,
@@ -15,4 +15,10 @@ export function listPayments(
   const query = search.toString();
   const path = employee ? "/v1/employee/payments" : "/v1/payments";
   return api<PaymentFeed>(query ? `${path}?${query}` : path, token);
+}
+
+export function getStats(token: string, year: number, month?: number) {
+  const search = new URLSearchParams({ year: String(year) });
+  if (month) search.set("month", String(month));
+  return api<StatsReport>(`/v1/payments/stats?${search}`, token);
 }

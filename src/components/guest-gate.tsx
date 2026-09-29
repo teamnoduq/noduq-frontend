@@ -10,7 +10,7 @@ import { useEffect } from "react";
 export function GuestGate({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const { kind, loading: authLoading } = useAuth();
-  const { provisioned, hasPlan, loading: workspaceLoading, error, refresh } = useWorkspace();
+  const { provisioned, loading: workspaceLoading, error, refresh } = useWorkspace();
 
   useEffect(() => {
     if (authLoading) return;
@@ -25,8 +25,8 @@ export function GuestGate({ children }: { children: React.ReactNode }) {
       router.replace("/setup");
       return;
     }
-    router.replace(hasPlan ? "/" : "/plan");
-  }, [authLoading, kind, workspaceLoading, provisioned, hasPlan, error, router]);
+    router.replace("/");
+  }, [authLoading, kind, workspaceLoading, provisioned, error, router]);
 
   if (authLoading) return <BootScreen />;
   if (kind && workspaceLoading) return <BootScreen label="Cargando…" />;

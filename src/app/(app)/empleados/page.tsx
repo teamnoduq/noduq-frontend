@@ -1,7 +1,9 @@
 "use client";
 
 import { useAuth } from "@/components/auth-provider";
+import { PlanInactive } from "@/components/plan-inactive";
 import { useToast } from "@/components/toast";
+import { useWorkspace } from "@/components/workspace-provider";
 import { Banner, Button, Dialog, Field, TextInput } from "@/components/ui";
 import {
   createEmployee,
@@ -11,7 +13,7 @@ import {
   regenerateEmployeeCode,
 } from "@/lib/identity";
 import { ApiError } from "@/lib/api";
-import type { CreatedEmployee, Employee } from "@/lib/types";
+import { isPlanActive, type CreatedEmployee, type Employee } from "@/lib/types";
 import { Copy, Plus } from "@phosphor-icons/react";
 import { FormEvent, useCallback, useEffect, useState } from "react";
 
@@ -28,6 +30,8 @@ function lookbackLabel(days: number): string {
 
 export default function EmpleadosPage() {
   const { accessToken } = useAuth();
+  const { workspace } = useWorkspace();
+  const planOn = isPlanActive(workspace);
   const toast = useToast();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
@@ -53,8 +57,9 @@ export default function EmpleadosPage() {
   }, [accessToken]);
 
   useEffect(() => {
+    if (!planOn) return;
     void load();
-  }, [load]);
+  }, [load, planOn]);
 
   function showCreated(created: CreatedEmployee) {
     setEmployees((current) => {
@@ -140,13 +145,17 @@ export default function EmpleadosPage() {
             Cada uno entra con usuario y un código. El código solo se muestra una vez.
           </p>
         </div>
-        <Button type="button" onClick={() => setCreateOpen(true)}>
-          <Plus size={16} weight="bold" />
-          Nuevo empleado
-        </Button>
+        {planOn ? (
+          <Button type="button" onClick={() => setCreateOpen(true)}>
+            <Plus size={16} weight="bold" />
+            Nuevo empleado
+          </Button>
+        ) : null}
       </header>
 
-      {error ? (
+      {!planOn ? <PlanInactive /> : null}
+
+      {planOn && error ? (
         <Banner>
           {error}
           <div className="banner-actions">
@@ -157,7 +166,7 @@ export default function EmpleadosPage() {
         </Banner>
       ) : null}
 
-      {loading ? (
+      {!planOn ? null : loading ? (
         <div className="employee-list" aria-busy="true" aria-label="Cargando empleados">
           <div className="skeleton" />
           <div className="skeleton" />

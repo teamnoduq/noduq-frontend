@@ -4,6 +4,7 @@ import { Brand } from "@/components/brand";
 import { useAuth } from "@/components/auth-provider";
 import { useWorkspace } from "@/components/workspace-provider";
 import {
+  ChartBar,
   IdentificationCard,
   QrCode,
   UsersThree,
@@ -14,6 +15,7 @@ import { usePathname } from "next/navigation";
 const OWNER_NAV = [
   { href: "/", label: "Pagos", icon: QrCode },
   { href: "/empleados", label: "Empleados", icon: UsersThree },
+  { href: "/estadisticas", label: "Estadísticas", icon: ChartBar },
   { href: "/cuenta", label: "Cuenta", icon: IdentificationCard },
 ];
 

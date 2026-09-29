@@ -1,6 +1,8 @@
 import { api } from "@/lib/api";
 import type {
   CreatedEmployee,
+  DeskPoll,
+  DeskTicket,
   Employee,
   EmployeeSessionPayload,
   Organization,
@@ -102,6 +104,14 @@ export function deleteEmployeeSession(token: string) {
   return api<void>("/v1/employee/sessions/me", token, {
     method: "DELETE",
   });
+}
+
+export function issueDeskTicket() {
+  return api<DeskTicket>("/v1/desk/tickets", null, { method: "POST" });
+}
+
+export function pollDeskTicket(id: string, secret: string) {
+  return api<DeskPoll>(`/v1/desk/tickets/${id}?secret=${encodeURIComponent(secret)}`);
 }
 
 export function activatePlan(token: string) {

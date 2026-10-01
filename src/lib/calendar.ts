@@ -76,6 +76,20 @@ export function windowRange(days: number): { since: string; until: string } {
   };
 }
 
+/** Monday 00:00 Bogotá through the end of today. */
+export function weekRange(): { since: string; until: string } {
+  const today = bogotaToday();
+  const utc = new Date(Date.UTC(today.year, today.month - 1, today.day, 5, 0, 0));
+  const sunday = utc.getUTCDay();
+  const fromMonday = sunday === 0 ? 6 : sunday - 1;
+  const start = shift(today, -fromMonday);
+  const end = shift(today, 1);
+  return {
+    since: bogotaStartIso(start.year, start.month, start.day),
+    until: bogotaStartIso(end.year, end.month, end.day),
+  };
+}
+
 export function copLabel(amount: number | null | undefined): string {
   if (amount == null || Number.isNaN(amount)) return "—";
   return new Intl.NumberFormat("es-CO", {
@@ -87,6 +101,28 @@ export function copLabel(amount: number | null | undefined): string {
 
 export function groupedInt(value: number): string {
   return new Intl.NumberFormat("es-CO", { maximumFractionDigits: 0 }).format(value);
+}
+
+/** Calendar year in Bogotá, or null when the instant cannot be read. */
+export function bogotaYear(iso: string | null | undefined): number | null {
+  if (!iso) return null;
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return null;
+  const year = Number(
+    new Intl.DateTimeFormat("en-US", { timeZone: ZONE, year: "numeric" })
+      .formatToParts(date)
+      .find((part) => part.type === "year")?.value,
+  );
+  return Number.isFinite(year) ? year : null;
+}
+
+/** Newest first. Current year back to the earliest payment, at most 14 years. */
+export function yearChoices(current: number, earliestYear?: number | null): number[] {
+  const floor = current - 14;
+  const start = earliestYear == null ? current : Math.min(current, Math.max(floor, earliestYear));
+  const years: number[] = [];
+  for (let value = current; value >= start; value -= 1) years.push(value);
+  return years;
 }
 
 function shift(

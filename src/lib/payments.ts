@@ -3,7 +3,16 @@ import type { PaymentFeed, StatsReport } from "@/lib/types";
 
 export function listPayments(
   token: string,
-  params: { limit?: number; q?: string; since?: string; until?: string; source?: string } = {},
+  params: {
+    limit?: number;
+    q?: string;
+    since?: string;
+    until?: string;
+    source?: string;
+    before?: string;
+    beforeId?: string;
+    offset?: number;
+  } = {},
   employee = false,
 ) {
   const search = new URLSearchParams();
@@ -12,9 +21,16 @@ export function listPayments(
   if (params.since) search.set("since", params.since);
   if (params.until) search.set("until", params.until);
   if (params.source) search.set("source", params.source);
+  if (params.before) search.set("before", params.before);
+  if (params.beforeId) search.set("beforeId", params.beforeId);
+  if (params.offset) search.set("offset", String(params.offset));
   const query = search.toString();
   const path = employee ? "/v1/employee/payments" : "/v1/payments";
   return api<PaymentFeed>(query ? `${path}?${query}` : path, token);
+}
+
+export function getPaymentHistory(token: string) {
+  return api<{ earliestAt?: string | null }>("/v1/payments/history", token);
 }
 
 export function getStats(token: string, year: number, month?: number) {

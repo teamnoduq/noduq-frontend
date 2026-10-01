@@ -21,7 +21,7 @@ export const metadata: Metadata = {
   },
   description: "Avisos de pago QR y el equipo en un solo panel.",
   icons: {
-    icon: "/logo-nq-cian-noche.png",
+    icon: "/logo-nq-cian-noche.svg",
   },
 };
 

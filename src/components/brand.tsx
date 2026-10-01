@@ -1,22 +1,32 @@
-import Image from "next/image";
+const MARK =
+  "M6224 7190 c370 -27 728 -165 1021 -394 147 -115 338 -325 440 -486 69 -107 168 -317 209 -442 64 -194 87 -328 93 -553 6 -209 -1 -296 -38 -479 -56 -278 -220 -632 -382 -824 -21 -24 -37 -47 -37 -50 0 -4 30 -43 68 -87 112 -132 512 -624 512 -630 0 -3 -222 -5 -493 -5 l-493 0 -146 178 c-81 97 -246 296 -367 441 -122 146 -221 268 -221 271 0 4 21 15 48 25 157 59 297 152 414 273 137 142 231 304 283 487 34 120 45 197 45 335 0 188 -35 342 -117 508 -248 507 -832 749 -1369 567 -302 -103 -563 -356 -688 -668 -19 -48 -38 -103 -41 -121 -7 -37 -51 18 507 -637 538 -630 897 -1053 1138 -1339 36 -43 109 -129 163 -192 53 -64 97 -118 97 -122 0 -3 -246 -6 -548 -6 l-547 0 -86 98 c-47 53 -222 254 -390 446 -481 553 -1762 2016 -1807 2066 l-41 45 -1 -1236 c0 -680 -3 -1277 -6 -1327 l-7 -92 -413 0 -414 0 0 1975 0 1975 438 0 437 -1 295 -341 c162 -188 358 -415 436 -504 l141 -161 33 56 c104 176 295 399 449 523 305 246 666 393 1052 427 132 12 185 12 333 1z";
+
+const MARK_RATIO = 555 / 404;
 
 export function Logo({ size = 36 }: { size?: number }) {
+  const height = size;
+  const width = Math.round(size * MARK_RATIO);
   return (
-    <Image
-      src="/logo-nq-cian-noche.png"
-      alt=""
-      width={size}
-      height={size}
-      priority
+    <svg
       className="brand-mark"
-    />
+      width={width}
+      height={height}
+      viewBox="258 300 555 404"
+      aria-hidden="true"
+      focusable="false"
+      style={{ width, height }}
+    >
+      <g transform="translate(0 1024) scale(0.1 -0.1)" fill="currentColor">
+        <path d={MARK} />
+      </g>
+    </svg>
   );
 }
 
 export function Brand({ compact = false }: { compact?: boolean }) {
   return (
     <span className="brand">
-      <Logo size={compact ? 28 : 40} />
+      <Logo size={compact ? 20 : 32} />
       <span className="brand-word">NODUQ</span>
     </span>
   );

@@ -1,27 +1,34 @@
 "use client";
 
 import { useAuth } from "@/components/auth-provider";
+import { CountingValue } from "@/components/counting-value";
 import { PlanInactive } from "@/components/plan-inactive";
-import { Banner, Button, Dialog } from "@/components/ui";
+import { Banner, Button } from "@/components/ui";
+import { Dropdown } from "@/components/dropdown";
 import { useWorkspace } from "@/components/workspace-provider";
-import { bogotaToday, copLabel, groupedInt, monthName, monthNames } from "@/lib/calendar";
-import { getStats } from "@/lib/payments";
+import { bogotaToday, bogotaYear, copLabel, groupedInt, monthName, monthNames, yearChoices } from "@/lib/calendar";
+import { getPaymentHistory, getStats } from "@/lib/payments";
 import { isPlanActive } from "@/lib/types";
 import type { StatsPoint, StatsReport } from "@/lib/types";
+import { TrendDown, TrendUp } from "@phosphor-icons/react";
+import { AnimatePresence, motion, MotionConfig, useReducedMotion } from "motion/react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
-  Calculator,
-  CalendarBlank,
-  HandTap,
-  TrendDown,
-  TrendUp,
-  UsersThree,
-  X,
-} from "@phosphor-icons/react";
-import { useEffect, useState, type ReactNode } from "react";
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
-const VISITS_KEY = "noduq.stats.tip.visits";
-const DISMISS_KEY = "noduq.stats.tip.dismissed";
-const FIRST_YEAR = 2026;
+const CIAN = "#88e7f3";
+const AXIS = "rgba(211, 246, 251, 0.45)";
+const GRID = "rgba(211, 246, 251, 0.08)";
+const SLIDE = { duration: 0.2, ease: [0.23, 1, 0.32, 1] as const };
 
 export default function EstadisticasPage() {
   const { accessToken } = useAuth();
@@ -31,23 +38,57 @@ export default function EstadisticasPage() {
   const [grain, setGrain] = useState<"month" | "year">("month");
   const [month, setMonth] = useState(today.month);
   const [year, setYear] = useState(today.year);
-  const [sheet, setSheet] = useState<"mes" | "anio" | null>(null);
   const [report, setReport] = useState<StatsReport | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [tip, setTip] = useState(false);
-  const [picked, setPicked] = useState(0);
   const [reload, setReload] = useState(0);
+  const [earliestYear, setEarliestYear] = useState<number | null>(null);
+  const [mounted, setMounted] = useState(false);
+  const reduceMotion = useReducedMotion();
+  const segRef = useRef<HTMLDivElement>(null);
+  const [pill, setPill] = useState<{ x: number; y: number; w: number } | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useLayoutEffect(() => {
+    const root = segRef.current;
+    if (!root) return;
+    const measure = () => {
+      const active = root.querySelector<HTMLElement>("[data-grain-on='true']");
+      if (!active) return;
+      const next = { x: active.offsetLeft, y: active.offsetTop, w: active.offsetWidth };
+      setPill((current) =>
+        current && current.x === next.x && current.y === next.y && current.w === next.w ? current : next,
+      );
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(root);
+    return () => observer.disconnect();
+  }, [grain, planOn]);
 
   useEffect(() => {
     setGrain("month");
     setMonth(today.month);
     setYear(today.year);
-    if (!planOn) return;
-    setTip(countTipVisit());
     // The desk always opens on the current month, the same way the phone does.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [planOn]);
+
+  useEffect(() => {
+    if (!accessToken || !planOn) return;
+    let alive = true;
+    getPaymentHistory(accessToken)
+      .then((row) => {
+        if (alive) setEarliestYear(bogotaYear(row.earliestAt));
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [accessToken, planOn]);
 
   useEffect(() => {
     if (!accessToken || !planOn) return;
@@ -56,10 +97,7 @@ export default function EstadisticasPage() {
     setError(null);
     getStats(accessToken, year, grain === "month" ? month : undefined)
       .then((next) => {
-        if (!alive) return;
-        setReport(next);
-        const peak = next.points.findIndex((point) => point.key === next.peak?.key);
-        setPicked(peak >= 0 ? peak : Math.max(0, next.points.length - 1));
+        if (alive) setReport(next);
       })
       .catch((err: unknown) => {
         if (!alive) return;
@@ -86,39 +124,85 @@ export default function EstadisticasPage() {
   const unit = byDay ? "día" : "mes";
   const bucketWord = byDay ? "Día" : "Mes";
   const emptyWord = byDay ? "Días" : "Meses";
-  const touched = report?.points[picked];
-  const countCaption = touched
-    ? `${touched.detail} · ${groupedInt(touched.count)} pagos`
-    : `Elige un punto para ver un ${unit}.`;
-  const valueCaption = touched
-    ? `${touched.detail} · ${copLabel(touched.amount)}`
-    : "Elige una barra para ver el total.";
+  const period = byDay ? `${monthName(month)} ${year}` : String(year);
+
+  function openMonth(point: StatsPoint | undefined) {
+    if (!point) return;
+    const match = /^(\d{4})-(\d{2})$/.exec(point.key);
+    if (!match) return;
+    const nextYear = Number(match[1]);
+    const nextMonth = Number(match[2]);
+    if (nextMonth < 1 || nextMonth > 12) return;
+    setYear(nextYear);
+    setMonth(nextMonth);
+    setGrain("month");
+  }
 
   return (
     <section className="stats">
-      <h1 className="stats-title">Estadísticas</h1>
-      <div className="chip-row chip-scroll" role="tablist" aria-label="Periodo">
-        <button type="button" className={grain === "month" ? "chip is-on" : "chip"} onClick={() => setGrain("month")}>
-          Mes
-        </button>
-        <button type="button" className={grain === "year" ? "chip is-on" : "chip"} onClick={() => setGrain("year")}>
-          Año
-        </button>
-        <button
-          type="button"
-          className={grain === "month" ? "chip is-own" : "chip"}
-          onClick={() => setSheet("mes")}
-        >
-          {monthName(month)} ▾
-        </button>
-        <button
-          type="button"
-          className={grain === "year" ? "chip is-own" : "chip"}
-          onClick={() => setSheet("anio")}
-        >
-          {year} ▾
-        </button>
-      </div>
+      <header className="stats-top">
+        <h1 className="stats-title">Estadísticas</h1>
+        <div className="stats-filters">
+          <MotionConfig reducedMotion="user">
+            <div className="seg" role="tablist" aria-label="Periodo" ref={segRef}>
+              {pill ? (
+                <motion.span
+                  className="seg-pill"
+                  initial={false}
+                  animate={{ x: pill.x, y: pill.y, width: pill.w }}
+                  transition={SLIDE}
+                />
+              ) : null}
+              <button
+                type="button"
+                data-grain-on={grain === "month" ? "true" : "false"}
+                aria-pressed={grain === "month"}
+                className={grain === "month" ? "is-on" : undefined}
+                onClick={() => setGrain("month")}
+              >
+                <span>Mes</span>
+              </button>
+              <button
+                type="button"
+                data-grain-on={grain === "year" ? "true" : "false"}
+                aria-pressed={grain === "year"}
+                className={grain === "year" ? "is-on" : undefined}
+                onClick={() => setGrain("year")}
+              >
+                <span>Año</span>
+              </button>
+            </div>
+          </MotionConfig>
+          <Dropdown
+            ariaLabel="Mes"
+            valueLabel={monthName(month)}
+            value={String(month)}
+            fit
+            onChange={(id) => {
+              setMonth(Number(id));
+              setGrain("month");
+            }}
+            options={monthNames().map((name, index) => ({
+              id: String(index + 1),
+              label: name,
+            }))}
+          />
+          <Dropdown
+            ariaLabel="Año"
+            valueLabel={String(year)}
+            value={String(year)}
+            align="right"
+            onChange={(id) => {
+              setYear(Number(id));
+              setGrain("year");
+            }}
+            options={yearChoices(today.year, earliestYear).map((value) => ({
+              id: String(value),
+              label: String(value),
+            }))}
+          />
+        </div>
+      </header>
 
       {error ? (
         <Banner>
@@ -135,184 +219,220 @@ export default function EstadisticasPage() {
 
       {report ? (
         <>
-          {tip ? (
-            <div className="stats-tip">
-              <HandTap size={18} weight="fill" aria-hidden="true" />
-              <p>Toca cualquier punto o barra en las gráficas para ver el detalle exacto de ese día o mes.</p>
-              <button type="button" aria-label="Cerrar" onClick={() => { dismissTip(); setTip(false); }}>
-                <X size={14} />
-              </button>
-            </div>
-          ) : null}
-
-          <article className="stats-card">
-            <h2>{byDay ? `${monthName(month)} ${year} — Pagos por día` : `${year} — Pagos por mes`}</h2>
-            <p>{countCaption}</p>
-            <Trend points={report.points} selected={picked} onSelect={setPicked} bars={false} valueOf={(point) => point.count} />
-          </article>
-          <article className="stats-card">
-            <h2>{byDay ? `${monthName(month)} ${year} — Valor por día` : `${year} — Valor por mes`}</h2>
-            <p>{valueCaption}</p>
-            <Trend points={report.points} selected={picked} onSelect={setPicked} bars valueOf={(point) => point.amount} />
-          </article>
-
-          <div className="stats-headlines">
-            <div>
+          <div className="stats-kpis">
+            <article className="stats-kpi">
               <span>Total pagos</span>
-              <strong className="is-soft">{groupedInt(report.count)}</strong>
-            </div>
-            <div>
+              <strong>
+                <CountingValue value={report.count} format={(next) => groupedInt(Math.round(next))} />
+              </strong>
+            </article>
+            <article className="stats-kpi">
               <span>Total valor</span>
-              <strong className="is-value">{copLabel(report.amount)}</strong>
-            </div>
+              <strong className="is-value">
+                <CountingValue value={report.amount} format={(next) => copLabel(Math.round(next))} />
+              </strong>
+            </article>
+            <article className="stats-kpi">
+              <span>Promedio por pago</span>
+              <strong>
+                <CountingValue value={report.averagePerPayment} format={(next) => copLabel(Math.round(next))} />
+              </strong>
+            </article>
+            <article className="stats-kpi">
+              <span>Clientes únicos</span>
+              <strong>
+                <CountingValue value={report.uniquePayers} format={(next) => groupedInt(Math.round(next))} />
+              </strong>
+            </article>
           </div>
-          <ul className="stats-rows">
-            <Metric icon={<Calculator size={16} />} tint="cyan" label={`Prom. pagos / ${unit} (${report.bucketCount})`} value={decimalLabel(report.averageCount)} />
-            <Metric icon={<Calculator size={16} />} tint="cyan" label={`Prom. valor / ${unit} (${report.bucketCount})`} value={copLabel(report.averageAmount)} />
-            <Metric icon={<Calculator size={16} />} tint="cyan" label="Prom. / pago" value={copLabel(report.averagePerPayment)} />
-            <Metric icon={<UsersThree size={16} />} tint="violet" label="Clientes únicos" value={groupedInt(report.uniquePayers)} />
-            <Compare label="vs periodo anterior (pagos)" percent={report.countChangePercent} />
-            <Compare label="vs periodo anterior (valor)" percent={report.amountChangePercent} />
-            <Metric icon={<TrendDown size={16} />} tint="amber" label={`${bucketWord} menor`} value={extreme(report.low)} valueTint="amber" />
-            <Metric icon={<TrendUp size={16} />} tint="value" label={`${bucketWord} mayor`} value={extreme(report.peak)} valueTint="value" />
-            <Metric icon={<CalendarBlank size={16} />} tint="cyan" label={`${emptyWord} con ventas / vacíos`} value={`${report.bucketsWithSales} / ${report.bucketsEmpty}`} />
-          </ul>
+
+          <div className="stats-body">
+            <div className="stats-charts">
+              <article className="stats-card">
+                <h2>Pagos por {unit}</h2>
+                <p>{period}</p>
+                <Plot ready={mounted} empty={report.points.length === 0} drill={grain === "year"}>
+                  <ResponsiveContainer width="100%" height={280}>
+                    <AreaChart
+                      data={report.points}
+                      margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
+                      onClick={
+                        grain === "year"
+                          ? (state) => openMonth(pointAt(report.points, state.activeIndex))
+                          : undefined
+                      }
+                    >
+                      <defs>
+                        <linearGradient id="stats-area" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor={CIAN} stopOpacity={0.38} />
+                          <stop offset="100%" stopColor={CIAN} stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid stroke={GRID} vertical={false} />
+                      <XAxis dataKey="label" interval={tickEvery(report.points.length)} tick={tick} axisLine={false} tickLine={false} />
+                      <YAxis width={36} allowDecimals={false} tick={tick} axisLine={false} tickLine={false} />
+                      <Tooltip content={(props) => <StatsTip {...props} mode="count" />} cursor={{ stroke: CIAN, strokeOpacity: 0.35 }} />
+                      <Area
+                        type="monotone"
+                        dataKey="count"
+                        stroke={CIAN}
+                        strokeWidth={2}
+                        fill="url(#stats-area)"
+                        dot={{ r: 3, fill: CIAN, strokeWidth: 0 }}
+                        activeDot={{ r: 5, fill: CIAN, stroke: "#021113", strokeWidth: 2 }}
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </Plot>
+              </article>
+
+              <article className="stats-card">
+                <h2>Valor por {unit}</h2>
+                <p>{period}</p>
+                <Plot ready={mounted} empty={report.points.length === 0} drill={grain === "year"}>
+                  <ResponsiveContainer width="100%" height={280}>
+                    <BarChart
+                      data={report.points}
+                      margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
+                      onClick={
+                        grain === "year"
+                          ? (state) => openMonth(pointAt(report.points, state.activeIndex))
+                          : undefined
+                      }
+                    >
+                      <CartesianGrid stroke={GRID} vertical={false} />
+                      <XAxis dataKey="label" interval={tickEvery(report.points.length)} tick={tick} axisLine={false} tickLine={false} />
+                      <YAxis width={48} tick={tick} axisLine={false} tickLine={false} tickFormatter={axisCop} />
+                      <Tooltip content={(props) => <StatsTip {...props} mode="amount" />} cursor={{ fill: "rgba(136, 231, 243, 0.08)" }} />
+                      <Bar dataKey="amount" fill={CIAN} radius={[4, 4, 0, 0]} maxBarSize={28} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </Plot>
+              </article>
+            </div>
+
+            <aside className="stats-side">
+              <h2>Desglose y comparativas</h2>
+              <div className="stats-side-swap">
+                <AnimatePresence initial={false}>
+                  <motion.div
+                    key={sideKey(report)}
+                    className="stats-side-panel"
+                    initial={reduceMotion ? false : { opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={reduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: -16 }}
+                    transition={{ duration: reduceMotion ? 0 : 0.55, ease: [0.23, 1, 0.32, 1] }}
+                  >
+                    <CompareLine label="vs periodo anterior (pagos)" percent={report.countChangePercent} />
+                    <CompareLine label="vs periodo anterior (valor)" percent={report.amountChangePercent} />
+                    <SideLine label={`${bucketWord} mayor`} value={extreme(report.peak)} tone="value" />
+                    <SideLine label={`${bucketWord} menor`} value={extreme(report.low)} tone="amber" />
+                    <SideLine label={`Prom. pagos / ${unit}`} value={decimalLabel(report.averageCount)} />
+                    <SideLine label={`Prom. valor / ${unit}`} value={copLabel(report.averageAmount)} />
+                    <SideLine
+                      label={`${emptyWord} con ventas / vacíos`}
+                      value={`${groupedInt(report.bucketsWithSales)} / ${groupedInt(report.bucketsEmpty)}`}
+                    />
+                  </motion.div>
+                </AnimatePresence>
+              </div>
+            </aside>
+          </div>
         </>
       ) : null}
-
-      <Dialog open={sheet === "mes"} onClose={() => setSheet(null)} title="Mes">
-        <ul className="choice-list">
-          {monthNames().map((name, index) => (
-            <li key={name}>
-              <button
-                type="button"
-                className={grain === "month" && month === index + 1 ? "is-on" : undefined}
-                onClick={() => {
-                  setMonth(index + 1);
-                  setGrain("month");
-                  setSheet(null);
-                }}
-              >
-                {name}
-              </button>
-            </li>
-          ))}
-        </ul>
-      </Dialog>
-      <Dialog open={sheet === "anio"} onClose={() => setSheet(null)} title="Año">
-        <ul className="choice-list">
-          {yearChoices(today.year).map((value) => (
-            <li key={value}>
-              <button
-                type="button"
-                className={year === value ? "is-on" : undefined}
-                onClick={() => {
-                  setYear(value);
-                  setGrain("year");
-                  setSheet(null);
-                }}
-              >
-                {value}
-              </button>
-            </li>
-          ))}
-        </ul>
-      </Dialog>
     </section>
   );
 }
 
-function Trend({
-  points,
-  selected,
-  onSelect,
-  bars,
-  valueOf,
+const tick = { fill: AXIS, fontSize: 11 };
+
+function tickEvery(count: number): number {
+  if (count <= 12) return 0;
+  return 4;
+}
+
+function Plot({
+  ready,
+  empty,
+  drill,
+  children,
 }: {
-  points: StatsPoint[];
-  selected: number;
-  onSelect: (index: number) => void;
-  bars: boolean;
-  valueOf: (point: StatsPoint) => number;
+  ready: boolean;
+  empty: boolean;
+  drill?: boolean;
+  children: React.ReactNode;
 }) {
-  if (points.length === 0) return <p className="lede">Sin pagos en este periodo.</p>;
-  const max = Math.max(1, ...points.map(valueOf));
-  const labels = axisLabels(points);
-  const line = points
-    .map((point, index) => {
-      const x = ((index + 0.5) / points.length) * 100;
-      const y = 100 - (valueOf(point) / max) * 88;
-      return `${x},${y}`;
-    })
-    .join(" ");
+  if (empty) return <p className="lede">Sin pagos en este periodo.</p>;
+  if (!ready) return <div className="stats-plot" />;
+  return <div className={drill ? "stats-plot is-drill" : "stats-plot"}>{children}</div>;
+}
+
+function pointAt(points: StatsPoint[], index: unknown): StatsPoint | undefined {
+  if (typeof index !== "number" && typeof index !== "string") return undefined;
+  const n = Number(index);
+  if (!Number.isInteger(n) || n < 0 || n >= points.length) return undefined;
+  return points[n];
+}
+
+function StatsTip({
+  active,
+  payload,
+  mode,
+}: {
+  active?: boolean;
+  payload?: ReadonlyArray<{ payload?: StatsPoint }>;
+  mode: "count" | "amount";
+}) {
+  const point = payload?.[0]?.payload;
+  if (!active || !point) return null;
   return (
-    <div className={bars ? "trend is-bars" : "trend"}>
-      <div className="trend-plot" role="listbox" aria-label={bars ? "Valor" : "Pagos"}>
-        {bars ? null : (
-          <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-            <polyline points={line} />
-          </svg>
-        )}
-        {points.map((point, index) => {
-          const ratio = valueOf(point) / max;
-          return (
-            <button
-              key={point.key}
-              type="button"
-              role="option"
-              aria-selected={index === selected}
-              className={index === selected ? "is-on" : undefined}
-              onClick={() => onSelect(index)}
-              style={{ ["--rise" as string]: String(ratio) }}
-            >
-              <span />
-            </button>
-          );
-        })}
-      </div>
-      <div className="trend-axis">
-        {labels.map((label, index) => (
-          <span key={`${points[index]?.key ?? index}`}>{label}</span>
-        ))}
-      </div>
+    <div className="stats-tipbox">
+      <p>{point.detail}</p>
+      <strong>{mode === "count" ? `${groupedInt(point.count)} pagos` : copLabel(point.amount)}</strong>
     </div>
   );
 }
 
-function Metric({
-  icon,
-  tint,
-  label,
-  value,
-  valueTint,
-}: {
-  icon: ReactNode;
-  tint: string;
-  label: string;
-  value: string;
-  valueTint?: string;
-}) {
+function sideKey(report: StatsReport): string {
+  return [
+    report.grain,
+    report.year,
+    report.month ?? "y",
+    report.countChangePercent ?? "x",
+    report.amountChangePercent ?? "x",
+    report.peak?.key ?? "",
+    report.peak?.amount ?? "",
+    report.low?.key ?? "",
+    report.low?.amount ?? "",
+    report.averageCount,
+    report.averageAmount,
+    report.bucketsWithSales,
+    report.bucketsEmpty,
+  ].join("|");
+}
+
+function SideLine({ label, value, tone }: { label: string; value: string; tone?: "value" | "amber" }) {
   return (
-    <li>
-      <span className={`metric-icon is-${tint}`}>{icon}</span>
+    <div className="stats-line">
       <span>{label}</span>
-      <strong className={valueTint ? `is-${valueTint}` : undefined}>{value}</strong>
-    </li>
+      <strong className={tone ? `is-${tone}` : undefined}>{value}</strong>
+    </div>
   );
 }
 
-function Compare({ label, percent }: { label: string; percent: number | null }) {
+function CompareLine({ label, percent }: { label: string; percent: number | null }) {
   const down = percent != null && percent < 0;
-  const up = percent != null && percent > 0;
-  const tint = down ? "rose" : up ? "emerald" : "muted";
+  const badge = percent != null && percent !== 0;
+  const tint = down ? "rose" : "emerald";
+  const text = percent == null ? "Sin periodo anterior" : percent === 0 ? "0%" : signedPercent(percent);
   return (
-    <li>
-      <span className={`metric-icon is-${tint}`}>{down ? <TrendDown size={16} /> : <TrendUp size={16} />}</span>
+    <div className="stats-line">
       <span>{label}</span>
-      <strong className={percent == null || percent === 0 ? undefined : `badge is-${tint}`}>
-        {percent == null ? "Sin pagos el periodo anterior" : signedPercent(percent)}
+      <strong className={badge ? `stats-badge is-${tint}` : undefined}>
+        {badge ? down ? <TrendDown size={14} /> : <TrendUp size={14} /> : null}
+        {text}
       </strong>
-    </li>
+    </div>
   );
 }
 
@@ -336,38 +456,13 @@ function decimalLabel(value: number): string {
   return `${groupedInt(whole)},${frac}`;
 }
 
-function axisLabels(points: StatsPoint[]): string[] {
-  if (points.length <= 12) return points.map((point) => point.label);
-  return points.map((point, index) => {
-    const day = Number(point.label);
-    if (index === 0 || index === points.length - 1 || (Number.isFinite(day) && day % 5 === 0)) return point.label;
-    return "";
-  });
-}
-
-function yearChoices(current: number): number[] {
-  const start = Math.min(FIRST_YEAR, current);
-  const years: number[] = [];
-  for (let value = current; value >= start; value -= 1) years.push(value);
-  return years;
-}
-
-function countTipVisit(): boolean {
-  try {
-    if (localStorage.getItem(DISMISS_KEY) === "1") return false;
-    const visits = Number(localStorage.getItem(VISITS_KEY) ?? "0");
-    if (visits >= 3) return false;
-    localStorage.setItem(VISITS_KEY, String(visits + 1));
-    return true;
-  } catch {
-    return false;
+function axisCop(value: number): string {
+  if (!Number.isFinite(value)) return "";
+  if (Math.abs(value) >= 1_000_000) {
+    const millions = value / 1_000_000;
+    const text = Number.isInteger(millions) ? String(millions) : millions.toFixed(1).replace(".", ",");
+    return `${text} M`;
   }
-}
-
-function dismissTip() {
-  try {
-    localStorage.setItem(DISMISS_KEY, "1");
-  } catch {
-    /* the tip can stay for this visit */
-  }
+  if (Math.abs(value) >= 1000) return `${Math.round(value / 1000)} mil`;
+  return groupedInt(value);
 }

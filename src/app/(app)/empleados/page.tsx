@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@/components/auth-provider";
+import { MenuPopover } from "@/components/dropdown";
 import { PlanInactive } from "@/components/plan-inactive";
 import { useToast } from "@/components/toast";
 import { useWorkspace } from "@/components/workspace-provider";
@@ -14,8 +15,8 @@ import {
 } from "@/lib/identity";
 import { ApiError } from "@/lib/api";
 import { isPlanActive, type CreatedEmployee, type Employee } from "@/lib/types";
-import { Copy, Plus } from "@phosphor-icons/react";
-import { FormEvent, useCallback, useEffect, useState } from "react";
+import { Copy, DotsThree, MagnifyingGlass, Plus, CaretLeft, CaretRight, UsersThree } from "@phosphor-icons/react";
+import { FormEvent, useEffect, useState } from "react";
 
 const USERNAME_HINT = "Letras minúsculas, números o _ · 3 a 32. Si lo dejas vacío, lo generamos.";
 const LOOKBACK = [
@@ -23,6 +24,7 @@ const LOOKBACK = [
   { days: 3, label: "3 días" },
   { days: 7, label: "7 días" },
 ];
+const PAGE_SIZES = [10, 25, 50, 100] as const;
 
 function lookbackLabel(days: number): string {
   return LOOKBACK.find((item) => item.days === days)?.label ?? `${days} días`;
@@ -34,7 +36,15 @@ export default function EmpleadosPage() {
   const planOn = isPlanActive(workspace);
   const toast = useToast();
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [count, setCount] = useState(0);
+  const [roster, setRoster] = useState<number | null>(null);
+  const [query, setQuery] = useState("");
+  const [appliedQuery, setAppliedQuery] = useState("");
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState<(typeof PAGE_SIZES)[number]>(10);
   const [loading, setLoading] = useState(true);
+  const [paging, setPaging] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [codeReveal, setCodeReveal] = useState<CreatedEmployee | null>(null);
@@ -43,41 +53,57 @@ export default function EmpleadosPage() {
   const [pendingRegen, setPendingRegen] = useState<Employee | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    if (!accessToken) return;
-    setLoading(true);
-    setError(null);
-    try {
-      setEmployees(await listEmployees(accessToken));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "No se pudieron cargar los empleados.");
-    } finally {
-      setLoading(false);
-    }
-  }, [accessToken]);
+  useEffect(() => {
+    const handle = window.setTimeout(() => setAppliedQuery(query), 280);
+    return () => window.clearTimeout(handle);
+  }, [query]);
+
+  const [seenQuery, setSeenQuery] = useState(appliedQuery);
+  if (seenQuery !== appliedQuery) {
+    setSeenQuery(appliedQuery);
+    setPage(0);
+  }
 
   useEffect(() => {
-    if (!planOn) return;
-    void load();
-  }, [load, planOn]);
+    if (!accessToken || !planOn) return;
+    let cancel = false;
+    const target = page;
+    setPaging(true);
+    setError(null);
+    listEmployees(accessToken, {
+      q: appliedQuery.trim() || undefined,
+      limit: pageSize,
+      offset: target * pageSize,
+    })
+      .then((feed) => {
+        if (cancel) return;
+        const nextCount = feed.count ?? feed.employees.length;
+        const pages = Math.max(1, Math.ceil(nextCount / pageSize));
+        if (target > pages - 1) {
+          setPage(pages - 1);
+          return;
+        }
+        setEmployees(feed.employees);
+        setCount(nextCount);
+        if (!appliedQuery.trim()) setRoster(nextCount);
+      })
+      .catch((err: unknown) => {
+        if (!cancel) setError(err instanceof Error ? err.message : "No se pudieron cargar los empleados.");
+      })
+      .finally(() => {
+        if (!cancel) {
+          setLoading(false);
+          setPaging(false);
+        }
+      });
+    return () => {
+      cancel = true;
+    };
+  }, [accessToken, appliedQuery, attempt, page, pageSize, planOn]);
 
   function showCreated(created: CreatedEmployee) {
-    setEmployees((current) => {
-      const next: Employee = {
-        id: created.id,
-        branchId: created.branchId,
-        displayName: created.displayName,
-        username: created.username,
-        active: created.active,
-        lookbackDays: created.lookbackDays ?? 1,
-        createdAt: new Date().toISOString(),
-      };
-      const exists = current.some((item) => item.id === created.id);
-      if (exists) {
-        return current.map((item) => (item.id === created.id ? { ...item, ...next } : item));
-      }
-      return [next, ...current];
-    });
+    setPage(0);
+    setAttempt((current) => current + 1);
     setCodeReveal(created);
   }
 
@@ -101,8 +127,8 @@ export default function EmpleadosPage() {
     setBusyId(target.id);
     try {
       await deleteEmployee(accessToken, target.id);
-      setEmployees((list) => list.filter((item) => item.id !== target.id));
       setPendingDelete(null);
+      setAttempt((current) => current + 1);
       toast.show(`${target.displayName} se eliminó.`, "ok");
     } catch (err) {
       toast.show(err instanceof Error ? err.message : "No se pudo borrar.", "error");
@@ -139,18 +165,12 @@ export default function EmpleadosPage() {
   return (
     <section>
       <header className="page-head">
-        <div>
+        <div className="emp-title">
           <h1>Empleados</h1>
-          <p className="lede">
-            Cada uno entra con usuario y un código. El código solo se muestra una vez.
-          </p>
+          {roster != null ? (
+            <p className="emp-count">{roster === 1 ? "1 cuenta" : `${roster} cuentas`}</p>
+          ) : null}
         </div>
-        {planOn ? (
-          <Button type="button" onClick={() => setCreateOpen(true)}>
-            <Plus size={16} weight="bold" />
-            Nuevo empleado
-          </Button>
-        ) : null}
       </header>
 
       {!planOn ? <PlanInactive /> : null}
@@ -159,72 +179,184 @@ export default function EmpleadosPage() {
         <Banner>
           {error}
           <div className="banner-actions">
-            <Button type="button" variant="ghost" onClick={() => void load()}>
+            <Button type="button" variant="ghost" onClick={() => setAttempt((current) => current + 1)}>
               Reintentar
             </Button>
           </div>
         </Banner>
       ) : null}
 
-      {!planOn ? null : loading ? (
-        <div className="employee-list" aria-busy="true" aria-label="Cargando empleados">
-          <div className="skeleton" />
-          <div className="skeleton" />
-        </div>
-      ) : employees.length === 0 && !error ? (
-        <div className="empty-box">
-          Aún no hay empleados. Crea uno para dar usuario y código.
-        </div>
-      ) : (
-        <ul className="employee-list">
-          {employees.map((employee) => (
-            <li key={employee.id} className="employee-row">
-              <div>
-                <div className="employee-name">{employee.displayName}</div>
-                <div className="employee-user">
-                  {employee.username} · ve {lookbackLabel(employee.lookbackDays)}
+      {!planOn ? null : (
+        <>
+          <div className="pay-toolbar">
+            <label className="search-box">
+              <MagnifyingGlass size={18} aria-hidden="true" />
+              <input
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Buscar por nombre o usuario..."
+                aria-label="Buscar por nombre o usuario"
+              />
+            </label>
+            <Button type="button" onClick={() => setCreateOpen(true)}>
+              <Plus size={16} weight="bold" />
+              Nuevo empleado
+            </Button>
+          </div>
+          <div className="pay-board emp-board">
+            {loading || paging ? (
+              <div className="pay-skel" aria-busy="true" aria-label="Cargando empleados">
+                <div className="skeleton" />
+                <div className="skeleton" />
+                <div className="skeleton" />
+                <div className="skeleton" />
+              </div>
+            ) : employees.length === 0 && !error ? (
+              <div className="pay-empty">
+                <span className="pay-empty-icon" aria-hidden="true">
+                  <UsersThree size={28} weight="regular" />
+                </span>
+                <h2>{appliedQuery.trim() ? "Sin empleados con ese nombre" : "Aún no hay empleados"}</h2>
+                <p>
+                  {appliedQuery.trim()
+                    ? "Ningún empleado coincide con esa búsqueda."
+                    : "Crea uno para dar usuario y código."}
+                </p>
+              </div>
+            ) : employees.length > 0 ? (
+              <table className="pay-grid">
+                <caption className="sr-only">
+                  {count === 1 ? "1 empleado" : `${count} empleados`}
+                </caption>
+                <thead>
+                  <tr>
+                    <th>Nombre</th>
+                    <th>Usuario</th>
+                    <th>Historial</th>
+                    <th>Estado</th>
+                    <th>Creado</th>
+                    <th>
+                      <span className="sr-only">Acciones</span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {employees.map((employee) => (
+                    <tr key={employee.id}>
+                      <td>
+                        <strong className="pay-who">{employee.displayName}</strong>
+                      </td>
+                      <td className="pay-user">{employee.username}</td>
+                      <td className="pay-when">{lookbackLabel(employee.lookbackDays)}</td>
+                      <td>
+                        <span className={employee.active ? "status-badge" : "status-badge is-wait"}>
+                          {employee.active ? "Activo" : "Inactivo"}
+                        </span>
+                      </td>
+                      <td className="pay-created">{createdLabel(employee.createdAt)}</td>
+                      <td>
+                        <div className="emp-actions">
+                          <button
+                            type="button"
+                            className="emp-edit"
+                            disabled={busyId === employee.id}
+                            onClick={() => setEditing(employee)}
+                          >
+                            Editar
+                          </button>
+                          <MenuPopover
+                            ariaLabel={`Más acciones de ${employee.displayName}`}
+                            portal
+                            trigger={<DotsThree size={18} weight="bold" aria-hidden="true" />}
+                          >
+                            <button
+                              type="button"
+                              role="menuitem"
+                              disabled={busyId === employee.id}
+                              onClick={() => setPendingRegen(employee)}
+                            >
+                              Nuevo código
+                            </button>
+                            <button
+                              type="button"
+                              role="menuitem"
+                              disabled={busyId === employee.id}
+                              onClick={() => void onToggleActive(employee)}
+                            >
+                              {employee.active ? "Desactivar" : "Activar"}
+                            </button>
+                            <div className="menu-rule" role="separator" />
+                            <button
+                              type="button"
+                              role="menuitem"
+                              className="is-danger"
+                              disabled={busyId === employee.id}
+                              onClick={() => setPendingDelete(employee)}
+                            >
+                              Borrar
+                            </button>
+                          </MenuPopover>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : null}
+            {count > 0 ? (
+              <nav className="pay-pager" aria-label="Páginas de empleados">
+                <button type="button" disabled={page === 0 || paging} onClick={() => setPage((current) => current - 1)}>
+                  <CaretLeft size={14} weight="bold" aria-hidden="true" />
+                  Anterior
+                </button>
+                <div className="pay-pager-pages">
+                  {pageWindow(page, Math.max(1, Math.ceil(count / pageSize))).map((item, index) =>
+                    item === "gap" ? (
+                      <span key={`gap-${index}`} className="pay-pager-gap" aria-hidden="true">
+                        …
+                      </span>
+                    ) : (
+                      <button
+                        key={item}
+                        type="button"
+                        aria-current={item === page ? "page" : undefined}
+                        disabled={paging}
+                        onClick={() => setPage(item)}
+                      >
+                        {item + 1}
+                      </button>
+                    ),
+                  )}
                 </div>
-              </div>
-              <span className={employee.active ? "badge badge-on" : "badge badge-off"}>
-                {employee.active ? "Activo" : "Inactivo"}
-              </span>
-              <div className="row-actions">
-                <Button
+                <button
                   type="button"
-                  variant="quiet"
-                  disabled={busyId === employee.id}
-                  onClick={() => setEditing(employee)}
+                  disabled={page >= Math.ceil(count / pageSize) - 1 || paging}
+                  onClick={() => setPage((current) => current + 1)}
                 >
-                  Editar
-                </Button>
-                <Button
-                  type="button"
-                  variant="quiet"
-                  disabled={busyId === employee.id}
-                  onClick={() => setPendingRegen(employee)}
-                >
-                  Nuevo código
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  loading={busyId === employee.id}
-                  onClick={() => void onToggleActive(employee)}
-                >
-                  {employee.active ? "Desactivar" : "Activar"}
-                </Button>
-                <Button
-                  type="button"
-                  variant="danger"
-                  disabled={busyId === employee.id}
-                  onClick={() => setPendingDelete(employee)}
-                >
-                  Borrar
-                </Button>
-              </div>
-            </li>
-          ))}
-        </ul>
+                  Siguiente
+                  <CaretRight size={14} weight="bold" aria-hidden="true" />
+                </button>
+                <label className="pay-pager-size">
+                  <span>Por página</span>
+                  <select
+                    aria-label="Empleados por página"
+                    value={pageSize}
+                    onChange={(event) => {
+                      setPageSize(Number(event.target.value) as (typeof PAGE_SIZES)[number]);
+                      setPage(0);
+                    }}
+                  >
+                    {PAGE_SIZES.map((size) => (
+                      <option key={size} value={size}>
+                        {size}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </nav>
+            ) : null}
+          </div>
+        </>
       )}
 
       <CreateEmployeeDialog
@@ -241,9 +373,9 @@ export default function EmpleadosPage() {
         employee={editing}
         token={accessToken}
         onClose={() => setEditing(null)}
-        onSaved={(next) => {
-          setEmployees((list) => list.map((item) => (item.id === next.id ? next : item)));
+        onSaved={() => {
           setEditing(null);
+          setAttempt((current) => current + 1);
           toast.show("Datos guardados.", "ok");
         }}
       />
@@ -549,4 +681,35 @@ function EditEmployeeDialog({
       </form>
     </Dialog>
   );
+}
+
+function createdLabel(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return "—";
+  const day = new Intl.DateTimeFormat("es-CO", {
+    timeZone: "America/Bogota",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }).format(date);
+  const time = new Intl.DateTimeFormat("es-CO", {
+    timeZone: "America/Bogota",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(date);
+  return `${day} · ${time}`;
+}
+
+function pageWindow(current: number, total: number): Array<number | "gap"> {
+  if (total <= 7) return Array.from({ length: total }, (_, index) => index);
+  const wanted = [0, total - 1, current - 1, current, current + 1].filter(
+    (value, index, all) => value >= 0 && value < total && all.indexOf(value) === index,
+  );
+  wanted.sort((a, b) => a - b);
+  const out: Array<number | "gap"> = [];
+  wanted.forEach((value, index) => {
+    if (index > 0 && value - wanted[index - 1] > 1) out.push("gap");
+    out.push(value);
+  });
+  return out;
 }

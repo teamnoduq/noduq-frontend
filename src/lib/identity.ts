@@ -52,8 +52,21 @@ export function patchOrganization(token: string, body: { name: string }) {
   });
 }
 
-export function listEmployees(token: string) {
-  return api<Employee[]>("/v1/employees", token);
+export type EmployeePage = {
+  employees: Employee[];
+  count: number;
+};
+
+export function listEmployees(
+  token: string,
+  params: { q?: string; limit?: number; offset?: number } = {},
+) {
+  const search = new URLSearchParams();
+  if (params.q) search.set("q", params.q);
+  if (params.limit) search.set("limit", String(params.limit));
+  if (params.offset) search.set("offset", String(params.offset));
+  const query = search.toString();
+  return api<EmployeePage>(query ? `/v1/employees?${query}` : "/v1/employees", token);
 }
 
 export function createEmployee(

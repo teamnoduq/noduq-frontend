@@ -96,7 +96,7 @@ export default function LoginPage() {
     <div className="desk-login">
       <section className="desk-login-brand" aria-label="NODUQ">
         <div className="desk-lockup">
-          <Logo size={36} />
+          <Logo size={32} />
           <span className="brand-word">NODUQ</span>
         </div>
         <div className="desk-brand-foot">

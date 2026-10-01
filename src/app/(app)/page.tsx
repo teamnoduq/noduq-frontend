@@ -1,31 +1,37 @@
 "use client";
 
 import { useAuth } from "@/components/auth-provider";
+import { CountingValue } from "@/components/counting-value";
+import { Dropdown } from "@/components/dropdown";
 import { PlanInactive } from "@/components/plan-inactive";
-import { Banner, Button, Dialog } from "@/components/ui";
+import { Banner, Button } from "@/components/ui";
 import { useWorkspace } from "@/components/workspace-provider";
 import {
   bogotaToday,
+  bogotaYear,
   copLabel,
   dayRange,
   groupedInt,
   monthName,
   monthNames,
   monthRange,
+  weekRange,
   windowRange,
+  yearChoices,
   yearRange,
 } from "@/lib/calendar";
-import { listPayments } from "@/lib/payments";
+import { getPaymentHistory, listPayments } from "@/lib/payments";
 import { isPlanActive } from "@/lib/types";
 import type { PaymentNotice } from "@/lib/types";
-import { MagnifyingGlass } from "@phosphor-icons/react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { CaretLeft, CaretRight, MagnifyingGlass, Receipt } from "@phosphor-icons/react";
+import { motion, MotionConfig } from "motion/react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
-type RangeId = "hoy" | "ayer" | "mes" | "anio" | "todos" | "ventana";
-
+type RangeId = "hoy" | "ayer" | "semana" | "mes" | "anio" | "todos" | "ventana";
 type Window = { since?: string; until?: string };
 
-const FIRST_YEAR = 2026;
+const PAGE_SIZES = [10, 25, 50, 100] as const;
+const SLIDE = { duration: 0.2, ease: [0.23, 1, 0.32, 1] as const };
 
 export default function PagosPage() {
   const { accessToken, kind, employeeSession } = useAuth();
@@ -39,218 +45,389 @@ export default function PagosPage() {
   const [year, setYear] = useState(today.year);
   const [query, setQuery] = useState("");
   const [appliedQuery, setAppliedQuery] = useState("");
-  const [sheet, setSheet] = useState<"mes" | "anio" | null>(null);
-  const [notices, setNotices] = useState<PaymentNotice[]>([]);
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState<(typeof PAGE_SIZES)[number]>(10);
+  const [rows, setRows] = useState<PaymentNotice[]>([]);
   const [count, setCount] = useState(0);
   const [total, setTotal] = useState(0);
+  const [statsKey, setStatsKey] = useState("");
   const [loading, setLoading] = useState(true);
+  const [paging, setPaging] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
+  const [earliestYear, setEarliestYear] = useState<number | null>(null);
+  const segRef = useRef<HTMLDivElement>(null);
+  const [pill, setPill] = useState<{ x: number; y: number; w: number } | null>(null);
 
   const span = useMemo(
     () => payWindow(range, month, year, lookback),
     [range, month, year, lookback],
   );
-
-  const load = useCallback(async () => {
-    if (!accessToken) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const feed = await listPayments(
-        accessToken,
-        {
-          limit: 100,
-          q: appliedQuery.trim() || undefined,
-          since: span.since,
-          until: span.until,
-        },
-        employee,
-      );
-      setNotices(feed.notices);
-      setCount(feed.count ?? feed.notices.length);
-      setTotal(feed.totalAmount ?? 0);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "No se pudieron cargar los avisos.");
-    } finally {
-      setLoading(false);
-    }
-  }, [accessToken, appliedQuery, employee, span.since, span.until]);
-
-  useEffect(() => {
-    void load();
-  }, [load]);
+  const filterKey = `${employee}|${range}|${month}|${year}|${appliedQuery}|${span.since ?? ""}|${span.until ?? ""}`;
+  const [seenKey, setSeenKey] = useState(filterKey);
+  if (seenKey !== filterKey) {
+    setSeenKey(filterKey);
+    setPage(0);
+  }
 
   useEffect(() => {
     const handle = window.setTimeout(() => setAppliedQuery(query), 280);
     return () => window.clearTimeout(handle);
   }, [query]);
 
-  const heading = payHeading(range, month, year, lookback);
-  const groups = groupByDay(notices);
-  const years = yearChoices(today.year);
+  useEffect(() => {
+    if (!accessToken || employee) return;
+    let alive = true;
+    getPaymentHistory(accessToken)
+      .then((row) => {
+        if (alive) setEarliestYear(bogotaYear(row.earliestAt));
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [accessToken, employee]);
 
-  function choose(id: RangeId) {
-    if (id === "mes") {
-      setSheet("mes");
-      return;
-    }
-    if (id === "anio") {
-      setSheet("anio");
-      return;
-    }
-    setRange(id);
-  }
+  useLayoutEffect(() => {
+    const root = segRef.current;
+    if (!root) return;
+    const measure = () => {
+      const active = root.querySelector<HTMLElement>("[data-range-on='true']");
+      if (!active) return;
+      const next = { x: active.offsetLeft, y: active.offsetTop, w: active.offsetWidth };
+      setPill((current) =>
+        current && current.x === next.x && current.y === next.y && current.w === next.w ? current : next,
+      );
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(root);
+    return () => observer.disconnect();
+  }, [range, month, year, employee, lookback]);
+
+  useEffect(() => {
+    if (!accessToken) return;
+    let cancel = false;
+    const key = filterKey;
+    const target = page;
+    setPaging(true);
+    setError(null);
+
+    listPayments(
+      accessToken,
+      {
+        limit: pageSize,
+        offset: target * pageSize,
+        q: appliedQuery.trim() || undefined,
+        since: span.since,
+        until: span.until,
+      },
+      employee,
+    )
+      .then((feed) => {
+        if (cancel) return;
+        const nextCount = feed.count ?? feed.notices.length;
+        const pages = Math.max(1, Math.ceil(nextCount / pageSize));
+        if (target > pages - 1) {
+          setPage(pages - 1);
+          return;
+        }
+        setRows(feed.notices);
+        setCount(nextCount);
+        setTotal(feed.totalAmount ?? 0);
+        setStatsKey(key);
+      })
+      .catch((err: unknown) => {
+        if (!cancel) {
+          setError(err instanceof Error ? err.message : "No se pudieron cargar los avisos.");
+        }
+      })
+      .finally(() => {
+        if (!cancel) {
+          setLoading(false);
+          setPaging(false);
+        }
+      });
+
+    return () => {
+      cancel = true;
+    };
+  }, [accessToken, appliedQuery, attempt, employee, filterKey, page, pageSize, span.since, span.until]);
+
+  const years = yearChoices(today.year, earliestYear);
+  const quickTabs = employee ? employeeTabs(lookback) : (["hoy", "ayer"] as RangeId[]);
+  const ready = statsKey === filterKey;
+  const hasTotals = statsKey !== "";
+  const pageCount = Math.max(1, Math.ceil(count / pageSize));
+  const showPager = ready && count > 0;
 
   return (
-    <section>
+    <section className="pay-dash">
       <header className="pay-head">
-        <h1>{heading.title}</h1>
-        <p className="pay-total">{copLabel(total)}</p>
-        {heading.period ? <p className="pay-period">{heading.period}</p> : <span />}
-        <p className="pay-count">{countLabel(count)}</p>
+        <h1>{payHeading(range, month, year, lookback)}</h1>
+        <p className="pay-total">
+          <strong>
+            {hasTotals ? <CountingValue value={total} format={(next) => copLabel(Math.round(next))} /> : "—"}
+          </strong>
+          <span>
+            {hasTotals ? <CountingValue value={count} format={(next) => countLabel(Math.round(next))} /> : "Cargando…"}
+          </span>
+        </p>
       </header>
 
-      <label className="search-box">
-        <MagnifyingGlass size={18} aria-hidden="true" />
-        <input
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder="Buscar por nombre…"
-          aria-label="Buscar por nombre"
-        />
-      </label>
+      <div className="pay-toolbar">
+        <MotionConfig reducedMotion="user">
+          <div className="seg" role="group" aria-label="Periodo" ref={segRef}>
+            {pill ? (
+              <motion.span
+                className="seg-pill"
+                initial={false}
+                animate={{ x: pill.x, y: pill.y, width: pill.w }}
+                transition={SLIDE}
+              />
+            ) : null}
+            {quickTabs.map((id) => (
+              <button
+                key={id}
+                type="button"
+                data-range-on={range === id ? "true" : "false"}
+                aria-pressed={range === id}
+                className={range === id ? "is-on" : undefined}
+                onClick={() => setRange(id)}
+              >
+                <span>{quickLabel(id, lookback)}</span>
+              </button>
+            ))}
 
-      <div className="chip-row chip-scroll" role="tablist" aria-label="Periodo">
-        {(employee ? employeeChips(lookback) : ownerChips(month, year)).map((chip) => (
-          <button
-            key={chip.id}
-            type="button"
-            role="tab"
-            aria-selected={range === chip.id}
-            className={range === chip.id ? "chip is-on" : "chip"}
-            onClick={() => choose(chip.id)}
-          >
-            {chip.label}
-          </button>
-        ))}
+            {!employee ? (
+              <>
+                <div
+                  className={range === "mes" ? "seg-slot is-on" : "seg-slot"}
+                  data-range-on={range === "mes" ? "true" : "false"}
+                >
+                  <Dropdown
+                    ariaLabel="Mes"
+                    valueLabel={monthName(month)}
+                    value={String(month)}
+                    align="right"
+                    fit
+                    onChange={(id) => {
+                      setMonth(Number(id));
+                      setRange("mes");
+                    }}
+                    options={monthNames().map((name, index) => ({
+                      id: String(index + 1),
+                      label: name,
+                    }))}
+                  />
+                </div>
+                <div
+                  className={range === "anio" ? "seg-slot is-on" : "seg-slot"}
+                  data-range-on={range === "anio" ? "true" : "false"}
+                >
+                  <Dropdown
+                    ariaLabel="Año"
+                    valueLabel={String(year)}
+                    value={String(year)}
+                    align="right"
+                    onChange={(id) => {
+                      setYear(Number(id));
+                      setRange("anio");
+                    }}
+                    options={years.map((value) => ({ id: String(value), label: String(value) }))}
+                  />
+                </div>
+                <button
+                  type="button"
+                  data-range-on={range === "todos" ? "true" : "false"}
+                  aria-pressed={range === "todos"}
+                  className={range === "todos" ? "is-on" : undefined}
+                  onClick={() => setRange("todos")}
+                >
+                  <span>Todos</span>
+                </button>
+              </>
+            ) : null}
+          </div>
+        </MotionConfig>
+        <label className="search-box">
+          <MagnifyingGlass size={18} aria-hidden="true" />
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Buscar por nombre, referencia..."
+            aria-label="Buscar por nombre o referencia"
+          />
+        </label>
       </div>
 
       {error ? (
         <Banner>
           {error}
           <div className="banner-actions">
-            <Button type="button" variant="ghost" onClick={() => void load()}>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setAttempt((current) => current + 1)}
+            >
               Reintentar
             </Button>
           </div>
         </Banner>
       ) : null}
 
-      {loading ? (
-        <div className="empty-box" aria-busy="true">
-          Cargando avisos…
-        </div>
-      ) : notices.length === 0 ? (
-        !planOn && !appliedQuery.trim() ? (
-          <PlanInactive />
-        ) : (
-          <div className="empty-box">
-            {appliedQuery.trim() ? "Ningún aviso con ese nombre." : "Todavía no hay avisos en este periodo."}
-          </div>
-        )
+      {!planOn && !appliedQuery.trim() && !loading && count === 0 ? (
+        <PlanInactive />
       ) : (
-        <>
-          {!planOn ? <PlanInactive /> : null}
-          <div className="pay-days">
-            {groups.map((group) => (
-              <section key={group.day}>
-                <h2>{group.day}</h2>
-                <ul>
-                  {group.notices.map((notice) => (
-                    <li key={notice.id}>
-                      <div>
-                        <strong>{notice.payerName ?? (notice.readable ? "Transferencia Bancolombia" : "Sin leer")}</strong>
-                        <span>{formatWhen(notice.occurredAt ?? notice.receivedAt)}</span>
-                      </div>
-                      <div className="pay-day-amount">
-                        <span>{notice.amountLabel ?? "—"}</span>
-                        {notice.confirmedByEmail ? <em>Verificado</em> : null}
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            ))}
-          </div>
-        </>
-      )}
+        <div className="pay-board">
+          {!planOn ? (
+            <div className="pay-board-note">
+              <PlanInactive />
+            </div>
+          ) : null}
+          {loading || paging ? (
+            <div className="pay-skel" aria-busy="true" aria-label="Cargando pagos">
+              <div className="skeleton" />
+              <div className="skeleton" />
+              <div className="skeleton" />
+              <div className="skeleton" />
+            </div>
+          ) : rows.length === 0 ? (
+            <div className="pay-empty">
+              <span className="pay-empty-icon" aria-hidden="true">
+                <Receipt size={28} weight="regular" />
+              </span>
+              <h2>
+                {appliedQuery.trim()
+                  ? "Sin movimientos registrados"
+                  : emptyTitle(range, employee)}
+              </h2>
+              <p>
+                {appliedQuery.trim()
+                  ? "Ningún aviso coincide con esa búsqueda."
+                  : "Los pagos confirmados aparecerán aquí automáticamente."}
+              </p>
+            </div>
+          ) : (
+            <table className="pay-grid">
+              <caption className="sr-only">
+                {countLabel(count)} · {copLabel(total)}
+              </caption>
+              <thead>
+                <tr>
+                  <th>Cliente</th>
+                  <th>Hora</th>
+                  <th>Estado</th>
+                  <th>Monto</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((notice) => {
+                  const name =
+                    notice.payerName ?? (notice.readable ? "Transferencia Bancolombia" : "Sin leer");
+                  return (
+                    <tr key={notice.id}>
+                      <td>
+                        <strong className="pay-who">{name}</strong>
+                      </td>
+                      <td className="pay-when">{formatWhen(notice.occurredAt ?? notice.receivedAt)}</td>
+                      <td>
+                        {notice.confirmedByEmail ? (
+                          <span className="status-badge">Verificado</span>
+                        ) : (
+                          <span className="status-badge is-wait">Pendiente</span>
+                        )}
+                      </td>
+                      <td className="pay-sum">{notice.amountLabel ?? "—"}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
 
-      <Dialog open={sheet === "mes"} onClose={() => setSheet(null)} title="Mes">
-        <ul className="choice-list">
-          {monthNames().map((name, index) => {
-            const value = index + 1;
-            const on = range === "mes" && month === value;
-            return (
-              <li key={name}>
-                <button
-                  type="button"
-                  className={on ? "is-on" : undefined}
-                  onClick={() => {
-                    setMonth(value);
-                    setRange("mes");
-                    setSheet(null);
+          {showPager ? (
+            <nav className="pay-pager" aria-label="Páginas de pagos">
+              <button type="button" disabled={page === 0 || paging} onClick={() => setPage((current) => current - 1)}>
+                <CaretLeft size={14} weight="bold" aria-hidden="true" />
+                Anterior
+              </button>
+              <div className="pay-pager-pages">
+                {pageWindow(page, pageCount).map((item, index) =>
+                  item === "gap" ? (
+                    <span key={`gap-${index}`} className="pay-pager-gap" aria-hidden="true">
+                      …
+                    </span>
+                  ) : (
+                    <button
+                      key={item}
+                      type="button"
+                      aria-current={item === page ? "page" : undefined}
+                      disabled={paging}
+                      onClick={() => setPage(item)}
+                    >
+                      {item + 1}
+                    </button>
+                  ),
+                )}
+              </div>
+              <button
+                type="button"
+                disabled={page >= pageCount - 1 || paging}
+                onClick={() => setPage((current) => current + 1)}
+              >
+                Siguiente
+                <CaretRight size={14} weight="bold" aria-hidden="true" />
+              </button>
+              <label className="pay-pager-size">
+                <span>Por página</span>
+                <select
+                  aria-label="Pagos por página"
+                  value={pageSize}
+                  onChange={(event) => {
+                    const next = Number(event.target.value) as (typeof PAGE_SIZES)[number];
+                    setPageSize(next);
+                    setPage(0);
                   }}
                 >
-                  {name}
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      </Dialog>
-      <Dialog open={sheet === "anio"} onClose={() => setSheet(null)} title="Año">
-        <ul className="choice-list">
-          {years.map((value) => {
-            const on = range === "anio" && year === value;
-            return (
-              <li key={value}>
-                <button
-                  type="button"
-                  className={on ? "is-on" : undefined}
-                  onClick={() => {
-                    setYear(value);
-                    setRange("anio");
-                    setSheet(null);
-                  }}
-                >
-                  {value}
-                </button>
-              </li>
-            );
-          })}
-        </ul>
-      </Dialog>
+                  {PAGE_SIZES.map((size) => (
+                    <option key={size} value={size}>
+                      {size}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </nav>
+          ) : null}
+        </div>
+      )}
     </section>
   );
 }
 
-function ownerChips(month: number, year: number): { id: RangeId; label: string }[] {
-  return [
-    { id: "hoy", label: "Hoy" },
-    { id: "ayer", label: "Ayer" },
-    { id: "mes", label: monthName(month) },
-    { id: "anio", label: String(year) },
-    { id: "todos", label: "Todos" },
-  ];
+function quickLabel(id: RangeId, lookback: number): string {
+  if (id === "ayer") return "Ayer";
+  if (id === "semana") return "Esta semana";
+  if (id === "ventana") return `${lookback} días`;
+  return "Hoy";
 }
 
-function employeeChips(lookback: number): { id: RangeId; label: string }[] {
-  const chips: { id: RangeId; label: string }[] = [{ id: "hoy", label: "Hoy" }];
-  if (lookback >= 3) {
-    chips.push({ id: "ayer", label: "Ayer" });
-    chips.push({ id: "ventana", label: `${lookback} días` });
-  }
-  return chips;
+function payHeading(range: RangeId, month: number, year: number, lookback: number): string {
+  if (range === "hoy") return "Pagos de hoy";
+  if (range === "ayer") return "Pagos de ayer";
+  if (range === "semana") return "Pagos de esta semana";
+  if (range === "ventana") return `Últimos ${lookback} días`;
+  if (range === "mes") return `Pagos de ${monthName(month).toLowerCase()}`;
+  if (range === "anio") return `Pagos de ${year}`;
+  return "Pagos";
+}
+
+function employeeTabs(lookback: number): RangeId[] {
+  const tabs: RangeId[] = ["hoy"];
+  if (lookback >= 3) tabs.push("ayer");
+  if (lookback >= 7) tabs.push("semana");
+  else if (lookback >= 3) tabs.push("ventana");
+  return tabs;
 }
 
 function employeeLookback(days: number | undefined): number {
@@ -261,45 +438,38 @@ function employeeLookback(days: number | undefined): number {
 function payWindow(range: RangeId, month: number, year: number, lookback: number): Window {
   if (range === "hoy") return dayRange(0);
   if (range === "ayer") return dayRange(1);
+  if (range === "semana") return weekRange();
   if (range === "ventana") return windowRange(lookback);
   if (range === "mes") return monthRange(year, month);
   if (range === "anio") return yearRange(year);
   return {};
 }
 
-function payHeading(range: RangeId, month: number, year: number, lookback: number): { title: string; period: string | null } {
-  if (range === "mes") return { title: "Pagos de", period: `${monthName(month)} ${year}` };
-  if (range === "anio") return { title: "Pagos de", period: String(year) };
-  if (range === "ayer") return { title: "Pagos de ayer", period: null };
-  if (range === "ventana") return { title: `Últimos ${lookback} días`, period: null };
-  if (range === "todos") return { title: "Pagos", period: null };
-  return { title: "Pagos de hoy", period: null };
+function emptyTitle(range: RangeId, employee: boolean): string {
+  const todayish = employee ? range === "hoy" || range === "ventana" : range === "hoy" || range === "todos";
+  return todayish ? "Aún no hay pagos hoy" : "Sin movimientos registrados";
 }
 
 function countLabel(count: number): string {
-  return count === 1 ? "1 pago" : `${groupedInt(count)} pagos`;
+  return count === 1 ? "1 pago registrado" : `${groupedInt(count)} pagos registrados`;
 }
 
-function yearChoices(current: number): number[] {
-  const start = Math.min(FIRST_YEAR, current);
-  const years: number[] = [];
-  for (let value = current; value >= start; value -= 1) years.push(value);
-  return years;
+function pageWindow(current: number, total: number): Array<number | "gap"> {
+  if (total <= 7) return Array.from({ length: total }, (_, index) => index);
+  const wanted = [0, total - 1, current - 1, current, current + 1].filter(
+    (value, index, all) => value >= 0 && value < total && all.indexOf(value) === index,
+  );
+  wanted.sort((a, b) => a - b);
+  const out: Array<number | "gap"> = [];
+  wanted.forEach((value, index) => {
+    if (index > 0 && value - wanted[index - 1] > 1) out.push("gap");
+    out.push(value);
+  });
+  return out;
 }
 
-function groupByDay(notices: PaymentNotice[]): { day: string; notices: PaymentNotice[] }[] {
-  const groups: { day: string; notices: PaymentNotice[] }[] = [];
-  for (const notice of notices) {
-    const day = dayTitle(notice.occurredAt ?? notice.receivedAt);
-    const last = groups[groups.length - 1];
-    if (last && last.day === day) last.notices.push(notice);
-    else groups.push({ day, notices: [notice] });
-  }
-  return groups;
-}
-
-function dayTitle(iso: string | null): string {
-  if (!iso) return "Reciente";
+function formatWhen(iso: string | null): string {
+  if (!iso) return "—";
   const date = new Date(iso);
   const today = bogotaToday();
   const parts = new Intl.DateTimeFormat("en-US", {
@@ -309,32 +479,18 @@ function dayTitle(iso: string | null): string {
     day: "2-digit",
   }).formatToParts(date);
   const pick = (type: string) => Number(parts.find((part) => part.type === type)?.value);
-  const y = pick("year");
-  const m = pick("month");
-  const d = pick("day");
-  if (y === today.year && m === today.month && d === today.day) return "Hoy";
-  const yesterday = dayRange(1);
-  const yParts = new Date(yesterday.since);
-  const yp = new Intl.DateTimeFormat("en-US", {
+  const time = new Intl.DateTimeFormat("es-CO", {
     timeZone: "America/Bogota",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).formatToParts(yParts);
-  const yPick = (type: string) => Number(yp.find((part) => part.type === type)?.value);
-  if (y === yPick("year") && m === yPick("month") && d === yPick("day")) return "Ayer";
-  return new Intl.DateTimeFormat("es-CO", {
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(date);
+  if (pick("year") === today.year && pick("month") === today.month && pick("day") === today.day) {
+    return time;
+  }
+  const day = new Intl.DateTimeFormat("es-CO", {
     timeZone: "America/Bogota",
     day: "numeric",
     month: "short",
   }).format(date);
-}
-
-function formatWhen(iso: string | null): string {
-  if (!iso) return "—";
-  return new Intl.DateTimeFormat("es-CO", {
-    timeZone: "America/Bogota",
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(new Date(iso));
+  return `${day} · ${time}`;
 }

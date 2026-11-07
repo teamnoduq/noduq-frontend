@@ -346,7 +346,7 @@ function OwnerAccount() {
       </section>
       ) : null}
 
-      {showGmail && accessToken ? (
+      {accessToken ? (
         <PaymentHistoryCard
           token={accessToken}
           planOn={isPlanActive(workspace)}

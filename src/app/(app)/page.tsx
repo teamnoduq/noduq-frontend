@@ -57,7 +57,7 @@ export default function PagosPage() {
   const [error, setError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
   const [earliestYear, setEarliestYear] = useState<number | null>(null);
-  const showMailHistory: boolean = false;
+  const showMailHistory = true;
   const segRef = useRef<HTMLDivElement>(null);
   const [pill, setPill] = useState<{ x: number; y: number; w: number } | null>(null);
 

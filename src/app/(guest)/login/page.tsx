@@ -4,7 +4,6 @@ import { DeskQr } from "@/components/desk-qr";
 import { Logo } from "@/components/brand";
 import { Banner, Button, Field, ModeSwitch, PasswordInput, TextInput } from "@/components/ui";
 import { useAuth } from "@/components/auth-provider";
-import { AppleLogo, GooglePlayLogo } from "@phosphor-icons/react";
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
 
@@ -104,18 +103,6 @@ export default function LoginPage() {
             Gestiona tus pagos con QR y recibe la confirmación al instante.
           </h2>
           <p className="desk-app-note">Las cuentas nuevas se crean exclusivamente desde la app móvil.</p>
-          <div className="store-row">
-            <div className="store-badge" aria-label="Google Play, coming soon">
-              <GooglePlayLogo size={22} weight="fill" aria-hidden="true" />
-              <strong>Google Play</strong>
-              <span className="store-soon" aria-hidden="true">Coming soon</span>
-            </div>
-            <div className="store-badge" aria-label="App Store, coming soon">
-              <AppleLogo size={22} weight="fill" aria-hidden="true" />
-              <strong>App Store</strong>
-              <span className="store-soon" aria-hidden="true">Coming soon</span>
-            </div>
-          </div>
         </div>
       </section>
 

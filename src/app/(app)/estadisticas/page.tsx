@@ -156,6 +156,15 @@ export default function EstadisticasPage() {
               ) : null}
               <button
                 type="button"
+                data-grain-on={grain === "all" ? "true" : "false"}
+                aria-pressed={grain === "all"}
+                className={grain === "all" ? "is-on" : undefined}
+                onClick={() => setGrain("all")}
+              >
+                <span>Todos</span>
+              </button>
+              <button
+                type="button"
                 data-grain-on={grain === "month" ? "true" : "false"}
                 aria-pressed={grain === "month"}
                 className={grain === "month" ? "is-on" : undefined}
@@ -171,15 +180,6 @@ export default function EstadisticasPage() {
                 onClick={() => setGrain("year")}
               >
                 <span>Año</span>
-              </button>
-              <button
-                type="button"
-                data-grain-on={grain === "all" ? "true" : "false"}
-                aria-pressed={grain === "all"}
-                className={grain === "all" ? "is-on" : undefined}
-                onClick={() => setGrain("all")}
-              >
-                <span>Todos</span>
               </button>
             </div>
           </MotionConfig>

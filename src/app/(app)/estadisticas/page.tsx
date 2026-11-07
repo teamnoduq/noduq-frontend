@@ -35,7 +35,7 @@ export default function EstadisticasPage() {
   const { workspace } = useWorkspace();
   const planOn = isPlanActive(workspace);
   const today = bogotaToday();
-  const [grain, setGrain] = useState<"month" | "year">("month");
+  const [grain, setGrain] = useState<"month" | "year" | "all">("month");
   const [month, setMonth] = useState(today.month);
   const [year, setYear] = useState(today.year);
   const [report, setReport] = useState<StatsReport | null>(null);
@@ -95,7 +95,7 @@ export default function EstadisticasPage() {
     let alive = true;
     setLoading(true);
     setError(null);
-    getStats(accessToken, year, grain === "month" ? month : undefined)
+    getStats(accessToken, year, grain === "month" ? month : undefined, grain === "all")
       .then((next) => {
         if (alive) setReport(next);
       })
@@ -124,7 +124,8 @@ export default function EstadisticasPage() {
   const unit = byDay ? "día" : "mes";
   const bucketWord = byDay ? "Día" : "Mes";
   const emptyWord = byDay ? "Días" : "Meses";
-  const period = byDay ? `${monthName(month)} ${year}` : String(year);
+  const period = grain === "all" ? "Todos" : byDay ? `${monthName(month)} ${year}` : String(year);
+  const canDrill = grain === "year" || grain === "all";
 
   function openMonth(point: StatsPoint | undefined) {
     if (!point) return;
@@ -170,6 +171,15 @@ export default function EstadisticasPage() {
                 onClick={() => setGrain("year")}
               >
                 <span>Año</span>
+              </button>
+              <button
+                type="button"
+                data-grain-on={grain === "all" ? "true" : "false"}
+                aria-pressed={grain === "all"}
+                className={grain === "all" ? "is-on" : undefined}
+                onClick={() => setGrain("all")}
+              >
+                <span>Todos</span>
               </button>
             </div>
           </MotionConfig>
@@ -251,13 +261,13 @@ export default function EstadisticasPage() {
               <article className="stats-card">
                 <h2>Pagos por {unit}</h2>
                 <p>{period}</p>
-                <Plot ready={mounted} empty={report.points.length === 0} drill={grain === "year"}>
+                <Plot ready={mounted} empty={report.points.length === 0} drill={canDrill}>
                   <ResponsiveContainer width="100%" height={280}>
                     <AreaChart
                       data={report.points}
                       margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
                       onClick={
-                        grain === "year"
+                        canDrill
                           ? (state) => openMonth(pointAt(report.points, state.activeIndex))
                           : undefined
                       }
@@ -289,13 +299,13 @@ export default function EstadisticasPage() {
               <article className="stats-card">
                 <h2>Valor por {unit}</h2>
                 <p>{period}</p>
-                <Plot ready={mounted} empty={report.points.length === 0} drill={grain === "year"}>
+                <Plot ready={mounted} empty={report.points.length === 0} drill={canDrill}>
                   <ResponsiveContainer width="100%" height={280}>
                     <BarChart
                       data={report.points}
                       margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
                       onClick={
-                        grain === "year"
+                        canDrill
                           ? (state) => openMonth(pointAt(report.points, state.activeIndex))
                           : undefined
                       }
@@ -323,10 +333,28 @@ export default function EstadisticasPage() {
                     exit={reduceMotion ? { opacity: 1, y: 0 } : { opacity: 0, y: -16 }}
                     transition={{ duration: reduceMotion ? 0 : 0.55, ease: [0.23, 1, 0.32, 1] }}
                   >
-                    <CompareLine label="vs periodo anterior (pagos)" percent={report.countChangePercent} />
-                    <CompareLine label="vs periodo anterior (valor)" percent={report.amountChangePercent} />
+                    {grain === "all" ? null : (
+                      <>
+                        <CompareLine label="vs periodo anterior (pagos)" percent={report.countChangePercent} />
+                        <CompareLine label="vs periodo anterior (valor)" percent={report.amountChangePercent} />
+                      </>
+                    )}
                     <SideLine label={`${bucketWord} mayor`} value={extreme(report.peak)} tone="value" />
                     <SideLine label={`${bucketWord} menor`} value={extreme(report.low)} tone="amber" />
+                    {byDay ? null : (
+                      <>
+                        <SideLine
+                          label={grain === "year" ? "Día mayor del año" : "Día mayor"}
+                          value={extreme(report.dayPeak)}
+                          tone="value"
+                        />
+                        <SideLine
+                          label={grain === "year" ? "Día menor del año" : "Día menor"}
+                          value={extreme(report.dayLow)}
+                          tone="amber"
+                        />
+                      </>
+                    )}
                     <SideLine label={`Prom. pagos / ${unit}`} value={decimalLabel(report.averageCount)} />
                     <SideLine label={`Prom. valor / ${unit}`} value={copLabel(report.averageAmount)} />
                     <SideLine
@@ -404,6 +432,10 @@ function sideKey(report: StatsReport): string {
     report.peak?.amount ?? "",
     report.low?.key ?? "",
     report.low?.amount ?? "",
+    report.dayPeak?.key ?? "",
+    report.dayPeak?.amount ?? "",
+    report.dayLow?.key ?? "",
+    report.dayLow?.amount ?? "",
     report.averageCount,
     report.averageAmount,
     report.bucketsWithSales,

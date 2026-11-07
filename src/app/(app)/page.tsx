@@ -453,7 +453,7 @@ function emptyTitle(range: RangeId, employee: boolean): string {
 }
 
 function countLabel(count: number): string {
-  return count === 1 ? "1 pago registrado" : `${groupedInt(count)} pagos registrados`;
+  return count === 1 ? "1 pago" : `${groupedInt(count)} pagos`;
 }
 
 function pageWindow(current: number, total: number): Array<number | "gap"> {

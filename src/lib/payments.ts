@@ -53,8 +53,13 @@ export function deferPaymentHistory(token: string) {
   return api<PaymentHistory>("/v1/payments/history/defer", token, { method: "POST" });
 }
 
-export function getStats(token: string, year: number, month?: number) {
-  const search = new URLSearchParams({ year: String(year) });
-  if (month) search.set("month", String(month));
+export function getStats(token: string, year: number, month?: number, all = false) {
+  const search = new URLSearchParams();
+  if (all) {
+    search.set("scope", "all");
+  } else {
+    search.set("year", String(year));
+    if (month) search.set("month", String(month));
+  }
   return api<StatsReport>(`/v1/payments/stats?${search}`, token);
 }

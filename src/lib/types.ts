@@ -129,6 +129,8 @@ export type StatsReport = {
   amountChangePercent: number | null;
   peak: StatsPoint | null;
   low: StatsPoint | null;
+  dayPeak: StatsPoint | null;
+  dayLow: StatsPoint | null;
   bucketsWithSales: number;
   bucketsEmpty: number;
   points: StatsPoint[];

@@ -56,7 +56,7 @@ export function PaymentHistoryCard({
 
   const account = variant === "account";
   const smsCopy =
-    "Los SMS del 85540 que ya están en el celular se traen desde la app de NODUQ. Los que ya están guardados no se repiten.";
+    "Los SMS del remitente del banco que ya están en el celular se traen desde la app de NODUQ. Los que ya están guardados no se repiten.";
 
   if (!account) {
     if (!planOn || !history || history.status === "missing" || history.status === "done") return null;

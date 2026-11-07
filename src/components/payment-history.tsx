@@ -90,7 +90,7 @@ function SyncedHistory({ history }: { history: PaymentHistory }) {
   const time = bogotaLabel(history.lastStoredAt, "time");
   const stamp = day && time ? `${day}, ${time}` : day;
   return (
-    <ul className="history-done">
+    <ul className="history-done" style={{ gap: 18 }}>
       <li style={metricRow}>
         <span style={metricIcon} aria-hidden="true">
           <Check size={15} weight="bold" />
@@ -125,7 +125,7 @@ const historyBadge = {
 const metricRow = {
   display: "flex",
   alignItems: "center",
-  gap: 10,
+  gap: 16,
   color: "#fff",
   fontWeight: 550,
 } as const;

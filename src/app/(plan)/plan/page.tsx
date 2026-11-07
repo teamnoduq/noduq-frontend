@@ -4,7 +4,6 @@ import { Brand } from "@/components/brand";
 import { useAuth } from "@/components/auth-provider";
 import { Banner, Button } from "@/components/ui";
 import { useWorkspace } from "@/components/workspace-provider";
-import { purchaseAndroidPlan } from "@/lib/billing";
 import { activatePlan } from "@/lib/identity";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -25,7 +24,6 @@ export default function PlanPage() {
     setBusy(true);
     setError(null);
     try {
-      await purchaseAndroidPlan(orgId);
       const plan = await activatePlan(accessToken);
       applyWorkspace({ ...workspace, plan });
       router.replace("/");
@@ -48,8 +46,8 @@ export default function PlanPage() {
         <p className="auth-kicker">Plan</p>
         <h1>Activa NODUQ</h1>
         <p className="auth-lede">
-          SMS del 85540. $24.900 al mes. Si sales ahora, volvemos aquí
-          hasta que el plan quede pago.
+          Los SMS del remitente del banco. $24.900 al mes. Si sales ahora, volvemos aquí
+          hasta que el plan quede activo.
         </p>
         <p className="plan-price">Android · SMS</p>
         {error ? <Banner>{error}</Banner> : null}

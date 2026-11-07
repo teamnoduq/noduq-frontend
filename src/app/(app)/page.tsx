@@ -2,6 +2,7 @@
 
 import { useAuth } from "@/components/auth-provider";
 import { CountingValue } from "@/components/counting-value";
+import { PaymentHistoryCard } from "@/components/payment-history";
 import { Dropdown } from "@/components/dropdown";
 import { PlanInactive } from "@/components/plan-inactive";
 import { Banner, Button } from "@/components/ui";
@@ -56,6 +57,7 @@ export default function PagosPage() {
   const [error, setError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
   const [earliestYear, setEarliestYear] = useState<number | null>(null);
+  const showMailHistory: boolean = false;
   const segRef = useRef<HTMLDivElement>(null);
   const [pill, setPill] = useState<{ x: number; y: number; w: number } | null>(null);
 
@@ -276,6 +278,14 @@ export default function PagosPage() {
         </Banner>
       ) : null}
 
+      {showMailHistory && !employee && accessToken ? (
+        <PaymentHistoryCard
+          token={accessToken}
+          planOn={planOn}
+          onFinished={() => setAttempt((current) => current + 1)}
+        />
+      ) : null}
+
       {!planOn && !appliedQuery.trim() && !loading && count === 0 ? (
         <PlanInactive />
       ) : (
@@ -317,7 +327,6 @@ export default function PagosPage() {
                 <tr>
                   <th>Cliente</th>
                   <th>Hora</th>
-                  <th>Estado</th>
                   <th>Monto</th>
                 </tr>
               </thead>
@@ -331,13 +340,6 @@ export default function PagosPage() {
                         <strong className="pay-who">{name}</strong>
                       </td>
                       <td className="pay-when">{formatWhen(notice.occurredAt ?? notice.receivedAt)}</td>
-                      <td>
-                        {notice.confirmedByEmail ? (
-                          <span className="status-badge">Verificado</span>
-                        ) : (
-                          <span className="status-badge is-wait">Pendiente</span>
-                        )}
-                      </td>
                       <td className="pay-sum">{notice.amountLabel ?? "—"}</td>
                     </tr>
                   );

@@ -1,12 +1,13 @@
 "use client";
 
+import { PaymentHistoryCard } from "@/components/payment-history";
 import { useAuth } from "@/components/auth-provider";
 import { useToast } from "@/components/toast";
 import { Button, Dialog, Field, TextInput } from "@/components/ui";
 import { useWorkspace } from "@/components/workspace-provider";
-import { gmailConnect, gmailDisconnect, gmailStatus, type GmailStatus } from "@/lib/gmail";
+import { gmailConnect, gmailDisconnect, type GmailStatus } from "@/lib/gmail";
 import { deleteMe, patchMe, patchOrganization, cancelPlan, reactivatePlan } from "@/lib/identity";
-import { isPlanCancelling, isPlanRenewing } from "@/lib/types";
+import { isPlanActive, isPlanCancelling, isPlanRenewing } from "@/lib/types";
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -81,6 +82,7 @@ function OwnerAccount() {
   const [deleteConfirm, setDeleteConfirm] = useState("");
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const showGmail: boolean = false;
   const [gmail, setGmail] = useState<GmailStatus | null>(null);
   const [gmailBusy, setGmailBusy] = useState(false);
   const [cancelOpen, setCancelOpen] = useState(false);
@@ -88,6 +90,8 @@ function OwnerAccount() {
 
   useEffect(() => {
     if (!accessToken) return;
+    // Gmail apagado: no se consulta ni se conecta.
+    /*
     let alive = true;
     void gmailStatus(accessToken)
       .then((status) => {
@@ -103,6 +107,7 @@ function OwnerAccount() {
     return () => {
       alive = false;
     };
+    */
   }, [accessToken, toast]);
 
   async function onSaveProfile(event: FormEvent<HTMLFormElement>) {
@@ -263,7 +268,7 @@ function OwnerAccount() {
           ) : (
             <>
               <ul className="plan-benefits">
-                <li>Validaciones automáticas e ilimitadas por SMS y Correo</li>
+                <li>Validaciones automáticas e ilimitadas por SMS</li>
                 <li>Notificaciones instantáneas para tu equipo en el mostrador</li>
               </ul>
               <div className="row-actions">
@@ -276,6 +281,7 @@ function OwnerAccount() {
         </section>
       )}
 
+      {showGmail ? (
       <section className="section">
         <h2>Gmail</h2>
         <p className="lede">
@@ -338,6 +344,16 @@ function OwnerAccount() {
           )}
         </div>
       </section>
+      ) : null}
+
+      {showGmail && accessToken ? (
+        <PaymentHistoryCard
+          token={accessToken}
+          planOn={isPlanActive(workspace)}
+          variant="account"
+          onFinished={() => undefined}
+        />
+      ) : null}
 
       <section className="section">
         <h2>Sesión y cuenta</h2>

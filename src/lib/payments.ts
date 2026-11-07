@@ -39,6 +39,8 @@ export type PaymentHistory = {
   percent: number;
   finishedAt?: string | null;
   earliestAt?: string | null;
+  paymentCount?: number;
+  lastStoredAt?: string | null;
 };
 
 export function getPaymentHistory(token: string) {

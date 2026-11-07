@@ -2,6 +2,7 @@
 
 import { groupedInt } from "@/lib/calendar";
 import { getPaymentHistory, type PaymentHistory } from "@/lib/payments";
+import { Check, Clock } from "@phosphor-icons/react";
 import { useEffect, useRef, useState } from "react";
 
 /** Feed matches Pagos on the phone. Account matches the Cuenta card: pending, running, and done. */
@@ -68,32 +69,64 @@ export function PaymentHistoryCard({
     );
   }
 
+  const synced = (history?.paymentCount ?? 0) > 0;
   return (
     <section className="section">
       <div className="history-head">
         <h2>Sincronización de SMS</h2>
-        <span className="status-badge">Disponible</span>
+        <span className={synced ? "status-badge" : "status-badge is-wait"}>
+          {synced ? "Sincronizado" : "Disponible"}
+        </span>
       </div>
-      <p className="lede">{smsCopy}</p>
-      {history?.status === "done" ? <SyncedHistory history={history} /> : null}
+      {synced && history ? <SyncedHistory history={history} /> : <p className="lede">{smsCopy}</p>}
     </section>
   );
 }
 
 function SyncedHistory({ history }: { history: PaymentHistory }) {
-  const listed = history.stored === 1 ? "1 pago listado" : `${groupedInt(history.stored)} pagos listados`;
-  const since = bogotaLabel(history.earliestAt, "day");
-  const day = bogotaLabel(history.finishedAt, "long");
-  const time = bogotaLabel(history.finishedAt, "time");
+  const count = history.paymentCount ?? 0;
+  const listed = count === 1 ? "1 pago" : `${groupedInt(count)} pagos`;
+  const day = bogotaLabel(history.lastStoredAt, "long");
+  const time = bogotaLabel(history.lastStoredAt, "time");
   const stamp = day && time ? `${day}, ${time}` : day;
   return (
     <ul className="history-done">
-      <li>{listed}</li>
-      {since ? <li>Desde {since}</li> : null}
-      {stamp ? <li>{stamp}</li> : null}
+      <li style={metricRow}>
+        <span style={metricIcon} aria-hidden="true">
+          <Check size={15} weight="bold" />
+        </span>
+        {listed}
+      </li>
+      {stamp ? (
+        <li style={metricRow}>
+          <span style={metricIcon} aria-hidden="true">
+            <Clock size={15} weight="bold" />
+          </span>
+          {stamp}
+        </li>
+      ) : null}
     </ul>
   );
 }
+
+const metricRow = {
+  display: "flex",
+  alignItems: "center",
+  gap: 10,
+  color: "#fff",
+  fontWeight: 550,
+} as const;
+
+const metricIcon = {
+  display: "grid",
+  placeItems: "center",
+  width: 28,
+  height: 28,
+  borderRadius: 99,
+  background: "color-mix(in srgb, var(--cian) 12%, transparent)",
+  color: "var(--cian)",
+  flex: "none",
+} as const;
 
 function bogotaLabel(iso: string | null | undefined, style: "day" | "long" | "time"): string {
   if (!iso) return "";

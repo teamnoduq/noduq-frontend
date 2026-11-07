@@ -72,9 +72,9 @@ export function PaymentHistoryCard({
   const synced = (history?.paymentCount ?? 0) > 0;
   return (
     <section className="section">
-      <div className="history-head">
-        <h2>Sincronización de SMS</h2>
-        <span className={synced ? "status-badge" : "status-badge is-wait"}>
+      <div className="history-head" style={historyHead}>
+        <h2 style={{ margin: 0 }}>Sincronización de SMS</h2>
+        <span className={synced ? "status-badge" : "status-badge is-wait"} style={historyBadge}>
           {synced ? "Sincronizado" : "Disponible"}
         </span>
       </div>
@@ -108,6 +108,19 @@ function SyncedHistory({ history }: { history: PaymentHistory }) {
     </ul>
   );
 }
+
+const historyHead = {
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "space-between",
+  gap: 12,
+  flexWrap: "nowrap",
+} as const;
+
+const historyBadge = {
+  flex: "none",
+  whiteSpace: "nowrap",
+} as const;
 
 const metricRow = {
   display: "flex",

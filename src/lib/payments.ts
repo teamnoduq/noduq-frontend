@@ -29,8 +29,28 @@ export function listPayments(
   return api<PaymentFeed>(query ? `${path}?${query}` : path, token);
 }
 
+export type PaymentHistory = {
+  status: string;
+  windowFrom?: string | null;
+  windowUntil?: string | null;
+  total: number;
+  processed: number;
+  stored: number;
+  percent: number;
+  finishedAt?: string | null;
+  earliestAt?: string | null;
+};
+
 export function getPaymentHistory(token: string) {
-  return api<{ earliestAt?: string | null }>("/v1/payments/history", token);
+  return api<PaymentHistory>("/v1/payments/history", token);
+}
+
+export function startPaymentHistory(token: string) {
+  return api<PaymentHistory>("/v1/payments/history/start", token, { method: "POST" });
+}
+
+export function deferPaymentHistory(token: string) {
+  return api<PaymentHistory>("/v1/payments/history/defer", token, { method: "POST" });
 }
 
 export function getStats(token: string, year: number, month?: number) {

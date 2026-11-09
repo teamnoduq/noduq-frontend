@@ -21,7 +21,7 @@ import {
   yearChoices,
   yearRange,
 } from "@/lib/calendar";
-import { getPaymentHistory, listPayments } from "@/lib/payments";
+import { getPaymentHistory, listPayments, watchPayments } from "@/lib/payments";
 import { isPlanActive } from "@/lib/types";
 import type { PaymentNotice } from "@/lib/types";
 import { CaretLeft, CaretRight, MagnifyingGlass, Receipt } from "@phosphor-icons/react";
@@ -107,12 +107,24 @@ export default function PagosPage() {
     return () => observer.disconnect();
   }, [range, month, year, employee, lookback]);
 
+  const quietLive = useRef(false);
+
+  useEffect(() => {
+    if (!accessToken) return;
+    return watchPayments(accessToken, () => {
+      quietLive.current = true;
+      setAttempt((current) => current + 1);
+    });
+  }, [accessToken]);
+
   useEffect(() => {
     if (!accessToken) return;
     let cancel = false;
     const key = filterKey;
     const target = page;
-    setPaging(true);
+    const silent = quietLive.current;
+    quietLive.current = false;
+    if (!silent) setPaging(true);
     setError(null);
 
     listPayments(

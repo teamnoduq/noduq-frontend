@@ -1,4 +1,4 @@
-import { api } from "@/lib/api";
+import { api, apiSocketUrl } from "@/lib/api";
 import type { PaymentFeed, StatsReport } from "@/lib/types";
 
 export function listPayments(
@@ -53,6 +53,48 @@ export function startPaymentHistory(token: string) {
 
 export function deferPaymentHistory(token: string) {
   return api<PaymentHistory>("/v1/payments/history/defer", token, { method: "POST" });
+}
+
+/** Keeps the open desk in sync. The callback runs when a payment lands. */
+export function watchPayments(token: string, onPayment: () => void): () => void {
+  let stopped = false;
+  let socket: WebSocket | null = null;
+  let wait = 1000;
+  let retry = 0;
+  let pending = 0;
+
+  const open = () => {
+    if (stopped) return;
+    const next = new WebSocket(apiSocketUrl("/v1/payments/history/live", token));
+    socket = next;
+    next.onopen = () => {
+      wait = 1000;
+    };
+    next.onmessage = (message) => {
+      let body: { event?: string } | null = null;
+      try {
+        body = JSON.parse(String(message.data)) as { event?: string };
+      } catch {
+        return;
+      }
+      if (body?.event !== "payment") return;
+      window.clearTimeout(pending);
+      pending = window.setTimeout(onPayment, 200);
+    };
+    next.onclose = () => {
+      if (stopped || socket !== next) return;
+      retry = window.setTimeout(open, wait);
+      wait = Math.min(wait * 2, 8000);
+    };
+  };
+
+  open();
+  return () => {
+    stopped = true;
+    window.clearTimeout(retry);
+    window.clearTimeout(pending);
+    socket?.close();
+  };
 }
 
 export function getStats(token: string, year: number, month?: number, all = false) {

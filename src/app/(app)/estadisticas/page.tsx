@@ -7,7 +7,7 @@ import { Banner, Button } from "@/components/ui";
 import { Dropdown } from "@/components/dropdown";
 import { useWorkspace } from "@/components/workspace-provider";
 import { bogotaToday, bogotaYear, copLabel, groupedInt, monthName, monthNames, yearChoices } from "@/lib/calendar";
-import { getPaymentHistory, getStats } from "@/lib/payments";
+import { getPaymentHistory, getStats, watchPayments } from "@/lib/payments";
 import { isPlanActive } from "@/lib/types";
 import type { StatsPoint, StatsReport } from "@/lib/types";
 import { TrendDown, TrendUp } from "@phosphor-icons/react";
@@ -90,10 +90,22 @@ export default function EstadisticasPage() {
     };
   }, [accessToken, planOn]);
 
+  const quietLive = useRef(false);
+
+  useEffect(() => {
+    if (!accessToken || !planOn) return;
+    return watchPayments(accessToken, () => {
+      quietLive.current = true;
+      setReload((current) => current + 1);
+    });
+  }, [accessToken, planOn]);
+
   useEffect(() => {
     if (!accessToken || !planOn) return;
     let alive = true;
-    setLoading(true);
+    const silent = quietLive.current;
+    quietLive.current = false;
+    if (!silent) setLoading(true);
     setError(null);
     getStats(accessToken, year, grain === "month" ? month : undefined, grain === "all")
       .then((next) => {

@@ -66,6 +66,12 @@ export async function api<T>(
   return data as T;
 }
 
+export function apiSocketUrl(path: string, token: string): string {
+  const base = apiBase().replace(/^https:/, "wss:").replace(/^http:/, "ws:");
+  const join = path.startsWith("/") ? path : `/${path}`;
+  return `${base}${join}?access_token=${encodeURIComponent(token)}`;
+}
+
 export function isNotProvisioned(error: unknown): boolean {
   return (
     error instanceof ApiError &&

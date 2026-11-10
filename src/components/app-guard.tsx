@@ -1,6 +1,7 @@
 "use client";
 
 import { AppShell } from "@/components/app-shell";
+import { PaymentChime } from "@/components/payment-chime";
 import { useAuth } from "@/components/auth-provider";
 import { BootScreen } from "@/components/boot-screen";
 import { Banner, Button } from "@/components/ui";
@@ -45,5 +46,10 @@ export function AppGuard({ children }: { children: React.ReactNode }) {
     );
   }
   if (kind === "owner" && !provisioned) return <BootScreen />;
-  return <AppShell>{children}</AppShell>;
+  return (
+    <AppShell>
+      <PaymentChime />
+      {children}
+    </AppShell>
+  );
 }

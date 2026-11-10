@@ -338,8 +338,8 @@ export default function PagosPage() {
               <thead>
                 <tr>
                   <th>Cliente</th>
+                  <th className="pay-money">Monto</th>
                   <th>Hora</th>
-                  <th>Monto</th>
                 </tr>
               </thead>
               <tbody>
@@ -351,8 +351,8 @@ export default function PagosPage() {
                       <td>
                         <strong className="pay-who">{name}</strong>
                       </td>
-                      <td className="pay-when">{formatWhen(notice.occurredAt ?? notice.receivedAt)}</td>
                       <td className="pay-sum">{notice.amountLabel ?? "—"}</td>
+                      <td className="pay-when">{formatWhen(notice.occurredAt ?? notice.receivedAt)}</td>
                     </tr>
                   );
                 })}

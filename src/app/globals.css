@@ -1886,6 +1886,10 @@ button {
   font-variant-numeric: tabular-nums;
 }
 
+.pay-grid th.pay-money {
+  text-align: right;
+}
+
 .pay-grid th:last-child,
 .pay-grid td:last-child {
   text-align: right;
